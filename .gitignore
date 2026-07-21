@@ -216,3 +216,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Server access/deploy details (SSH key paths, server IP)
+doc/server.md
+
+# Claude Code local settings (machine-specific permissions)
+.claude/settings.local.json
+
+# Windows
+Thumbs.db
+desktop.ini
