@@ -1,0 +1,94 @@
+{% extends 'elearning/admin/base_admin.html' %}
+
+{% block admin_content %}
+<div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h1 style="color: var(--dark-navy); font-size: 1.8rem;">MCQ Question Bank</h1>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Manage practice questions and randomized 20-question final test pools.</p>
+        </div>
+        <div>
+            <a href="{{ url_for('admin.add_mcq') }}" class="btn-primary">
+                + Add Question
+            </a>
+        </div>
+    </div>
+
+    <!-- FILTER TOOLBAR -->
+    <div style="background: var(--surface); padding: 15px 20px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); margin-bottom: 25px;">
+        <form method="GET" action="{{ url_for('admin.mcqs_list') }}" style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <input type="text" name="q" class="form-control" placeholder="Search question or rationale keyword..." value="{{ search_query or '' }}" style="flex: 2; min-width: 220px;">
+            
+            <select name="course_id" class="form-control" style="flex: 2; min-width: 200px;">
+                <option value="">All Courses</option>
+                {% for c in courses %}
+                    <option value="{{ c.id }}" {% if course_filter == c.id|string %}selected{% endif %}>{{ c.title }}</option>
+                {% endfor %}
+            </select>
+
+            <select name="type" class="form-control" style="flex: 1; min-width: 170px;">
+                <option value="">All Question Types</option>
+                <option value="practice" {% if type_filter == 'practice' %}selected{% endif %}>Practice Knowledge Checks</option>
+                <option value="final_test" {% if type_filter == 'final_test' %}selected{% endif %}>Final Examination Bank</option>
+            </select>
+
+            <button type="submit" class="btn-primary" style="padding: 10px 20px;">Filter 🔍</button>
+            <a href="{{ url_for('admin.mcqs_list') }}" class="btn-outline" style="padding: 10px 15px;">Reset</a>
+        </form>
+    </div>
+
+    <!-- MCQS TABLE -->
+    <div style="background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow-x: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 50px;">ID</th>
+                    <th>Course</th>
+                    <th>Type</th>
+                    <th>Part</th>
+                    <th>Question</th>
+                    <th>Correct</th>
+                    <th>Explanation</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in mcqs %}
+                    <tr>
+                        <td>#{{ m.id }}</td>
+                        <td>{{ m.course.title[:20] }}...</td>
+                        <td>
+                            <span class="meta-tag" style="background: {{ '#e0f2fe' if m.type == 'practice' else '#faf5ff' }}; color: {{ '#0369a1' if m.type == 'practice' else '#7e22ce' }}; font-weight: bold;">
+                                {{ 'Practice' if m.type == 'practice' else 'Final Test' }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if m.part %}
+                                <span class="meta-tag" style="background: {{ '#fef3c7' if m.part == 'A' else '#dcfce7' }}; color: {{ '#92400e' if m.part == 'A' else '#166534' }}; font-weight: 700;">
+                                    Part {{ m.part }}
+                                </span>
+                            {% else %}
+                                <span style="color: var(--text-muted); font-size: 0.8rem;">—</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ m.question_text[:75] }}...</strong></td>
+                        <td><span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-weight:bold;">{{ m.correct_option }}</span></td>
+                        <td><span style="font-size:0.85rem;color:var(--text-muted);">{{ m.explanation[:50] }}...</span></td>
+                        <td>
+                            <a href="{{ url_for('admin.edit_mcq', mcq_id=m.id) }}" class="btn-primary" style="padding: 4px 12px; font-size: 0.82rem; white-space: nowrap;">
+                                Edit ✎
+                            </a>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                            No questions found in this question bank filter.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

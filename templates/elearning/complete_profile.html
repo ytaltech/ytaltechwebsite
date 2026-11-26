@@ -1,0 +1,56 @@
+{% extends 'elearning/base.html' %}
+
+{% block title %}Complete Your Profile{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <span class="meta-tag" style="background:#e0f2fe;color:#0369a1;font-weight:700;">Profile Details</span>
+            <h2 style="margin-top: 10px;">Complete Your Profile</h2>
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 4px;">
+                Required for statutory certification registry and audit compliance.
+            </p>
+        </div>
+
+        <form action="{{ url_for('auth.complete_profile', next=next) }}" method="POST">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>First Name *</label>
+                    <input type="text" name="first_name" class="form-control" value="{{ user.first_name }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Middle Name</label>
+                    <input type="text" name="middle_name" class="form-control" value="{{ user.middle_name or '' }}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Last Name *</label>
+                <input type="text" name="last_name" class="form-control" value="{{ user.last_name }}" required>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Age *</label>
+                    <input type="number" name="age" min="16" max="100" class="form-control" value="{{ user.age or '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Gender *</label>
+                    <select name="gender" class="form-control" required>
+                        <option value="">Select Gender</option>
+                        <option value="Male" {% if user.gender == 'Male' %}selected{% endif %}>Male</option>
+                        <option value="Female" {% if user.gender == 'Female' %}selected{% endif %}>Female</option>
+                        <option value="Non-Binary" {% if user.gender == 'Non-Binary' %}selected{% endif %}>Non-Binary</option>
+                        <option value="Prefer not to say" {% if user.gender == 'Prefer not to say' %}selected{% endif %}>Prefer not to say</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px; margin-top: 15px;">
+                Save Profile & Continue ➔
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

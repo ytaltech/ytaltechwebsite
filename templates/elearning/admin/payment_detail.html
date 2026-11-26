@@ -1,0 +1,223 @@
+{% extends 'elearning/admin/base_admin.html' %}
+
+{% block admin_content %}
+<div style="max-width: 1000px;">
+    <!-- TOP BAR -->
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('admin.payments_list') }}" style="color:var(--primary);text-decoration:none;font-weight:600;">
+            ← Back to Payments List
+        </a>
+    </div>
+
+    <!-- MAIN CARD -->
+    <div style="background: var(--surface); padding: 35px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border-top: 5px solid var(--secondary); margin-bottom: 30px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px;">
+            <div>
+                <span class="status-badge status-{{ order.status }}" style="font-size: 0.85rem; padding: 4px 12px; margin-bottom: 8px;">
+                    {{ order.status.replace('_', ' ').title() }}
+                </span>
+                <h1 style="color: var(--dark-navy); font-size: 1.8rem; margin: 6px 0;">Payment Review: {{ order.order_reference }}</h1>
+                <p style="color: var(--text-muted); font-size: 0.95rem;">
+                    Course: <strong>{{ order.course.title }}</strong> &nbsp;|&nbsp; Enrolment ID: #{{ order.enrolment_id }}
+                </p>
+            </div>
+            <div>
+                {% if order.status in ['verified_approved', 'certificate_issued', 'certificate_dispatched', 'certificate_delivered'] %}
+                    <a href="{{ url_for('payments.download_invoice', order_ref=order.order_reference) }}" class="btn-outline">
+                        Download Invoice 🧾
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- DUPLICATE ALERT (IF ANY) -->
+        {% if duplicate_orders %}
+            <div style="margin-top: 20px; padding: 15px; background: #fee2e2; border-left: 4px solid var(--danger); border-radius: var(--radius-sm); color: #991b1b;">
+                <strong>🚨 DUPLICATE UTR DETECTED!</strong>
+                <p style="margin-top: 4px; font-size: 0.9rem;">
+                    Transaction Reference <code>{{ order.transaction_reference }}</code> has also been submitted in {{ duplicate_orders|length }} other order(s):
+                    {% for dup in duplicate_orders %}
+                        <a href="{{ url_for('admin.payment_detail', order_id=dup.id) }}" style="color:var(--danger);font-weight:bold;">{{ dup.order_reference }}</a>{% if not loop.last %}, {% endif %}
+                    {% endfor %}.
+                    Please verify thoroughly before taking action.
+                </p>
+            </div>
+        {% endif %}
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 25px;">
+            <!-- LEFT: SUBMISSION DETAILS & PROOF -->
+            <div>
+                <h3 style="color: var(--dark-navy); margin-bottom: 12px; font-size: 1.15rem;">Learner Submission Details</h3>
+                
+                <table class="styled-table" style="font-size: 0.9rem;">
+                    <tr>
+                        <td><strong>Learner Name:</strong></td>
+                        <td>{{ order.user.full_name }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Learner Email:</strong></td>
+                        <td>{{ order.user.email }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Payment Region:</strong></td>
+                        <td><span class="meta-tag">{{ order.region_label }}</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Base Taxable Amount:</strong></td>
+                        <td><strong>{{ '₹' if order.currency == 'INR' else '$' }}{{ "%.2f"|format(order.base_amount) }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>GST Amount (18%):</strong></td>
+                        <td><strong>{{ ('₹' + "%.2f"|format(order.gst_amount)) if order.currency == 'INR' else '— (International)' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Total Expected Amount:</strong></td>
+                        <td><strong>{{ '₹' if order.currency == 'INR' else '$' }}{{ "%.2f"|format(order.expected_amount) }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Total Claimed Amount:</strong></td>
+                        <td>
+                            <strong style="color: {{ 'green' if order.amount_paid == order.expected_amount else 'red' }};">
+                                {{ '₹' if order.currency == 'INR' else '$' }}{{ "%.2f"|format(order.amount_paid or 0) }}
+                            </strong>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Payment Mode:</strong></td>
+                        <td>{{ order.payment_mode or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Transaction Ref / UTR:</strong></td>
+                        <td><code>{{ order.transaction_reference or 'N/A' }}</code></td>
+                    </tr>
+                    {% if order.customer_gstin %}
+                    <tr>
+                        <td><strong>Customer GSTIN:</strong></td>
+                        <td><code style="color:#0369a1;font-weight:bold;">{{ order.customer_gstin }}</code></td>
+                    </tr>
+                    {% endif %}
+                    {% if order.customer_org_name %}
+                    <tr>
+                        <td><strong>Customer Organization:</strong></td>
+                        <td>{{ order.customer_org_name }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if order.customer_billing_address %}
+                    <tr>
+                        <td><strong>Billing Address:</strong></td>
+                        <td>{{ order.customer_billing_address }} ({{ order.customer_state or 'Maharashtra' }})</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <td><strong>Payment Date:</strong></td>
+                        <td>{{ order.payment_date.strftime('%d-%b-%Y %H:%M') if order.payment_date else 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Payer Name & Account:</strong></td>
+                        <td>{{ order.payer_name or 'N/A' }} ({{ order.payer_account_upi or 'N/A' }})</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Learner Remarks:</strong></td>
+                        <td>{{ order.learner_remarks or 'None' }}</td>
+                    </tr>
+                </table>
+
+                <!-- PROOF PREVIEW -->
+                <div style="margin-top: 20px;">
+                    <h4 style="color: var(--dark-navy); margin-bottom: 8px;">Uploaded Payment Proof:</h4>
+                    {% if order.proof_file_path %}
+                        <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 15px; border-radius: var(--radius-md); text-align: center;">
+                            {% if order.proof_file_path.endswith('.pdf') %}
+                                <a href="{{ url_for('static', filename=order.proof_file_path) }}" target="_blank" class="btn-primary" style="display:inline-flex;">
+                                    View PDF Receipt ↗
+                                </a>
+                            {% else %}
+                                <a href="{{ url_for('static', filename=order.proof_file_path) }}" target="_blank">
+                                    <img src="{{ url_for('static', filename=order.proof_file_path) }}" alt="Payment Receipt" style="max-width: 100%; max-height: 250px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                </a>
+                                <div style="margin-top: 6px;">
+                                    <a href="{{ url_for('static', filename=order.proof_file_path) }}" target="_blank" style="font-size: 0.8rem; color: var(--primary);">Open Full Image ↗</a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div style="color: var(--danger); font-size: 0.9rem;">No proof file uploaded.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- RIGHT: ADMIN VERIFICATION CHECKLIST & ACTIONS -->
+            <div>
+                <!-- INDEPENDENT AUDIT CHECKLIST -->
+                <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; margin-bottom: 25px;">
+                    <h3 style="color: var(--dark-navy); font-size: 1.15rem; margin-bottom: 8px;">Independent Verification Checklist</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">
+                        Finance Admin must independently confirm the transaction against the company bank/UPI statement before approving.
+                    </p>
+
+                    <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.88rem; color: #334155;">
+                        <label style="display: flex; gap: 8px; align-items: center;">
+                            <input type="checkbox" id="chk1" checked>
+                            <span>Amount received matches applicable course price (₹{{ "%.2f"|format(order.expected_amount) }}).</span>
+                        </label>
+                        <label style="display: flex; gap: 8px; align-items: center;">
+                            <input type="checkbox" id="chk2" checked>
+                            <span>Payment was received in correct company bank/UPI account.</span>
+                        </label>
+                        <label style="display: flex; gap: 8px; align-items: center;">
+                            <input type="checkbox" id="chk3" checked>
+                            <span>Transaction ref / UTR is valid and not previously used.</span>
+                        </label>
+                        <label style="display: flex; gap: 8px; align-items: center;">
+                            <input type="checkbox" id="chk4" checked>
+                            <span>Payment date is reasonable and within acceptance window.</span>
+                        </label>
+                        <label style="display: flex; gap: 8px; align-items: center;">
+                            <input type="checkbox" id="chk5" checked>
+                            <span>Payment proof is legible and matches entered details.</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- ACTION FORM -->
+                <form action="{{ url_for('admin.process_payment_action', order_id=order.id) }}" method="POST">
+                    
+                    <div class="form-group">
+                        <label>Internal Administrator Notes</label>
+                        <textarea name="admin_notes" class="form-control" rows="2" placeholder="Record bank transaction match notes, verification timestamp, or observations">{{ order.admin_notes or '' }}</textarea>
+                    </div>
+
+                    <div class="form-group" id="rejectionReasonGroup">
+                        <label>Reason for Rejection (if rejecting)</label>
+                        <input type="text" name="rejection_reason" class="form-control" value="{{ order.rejection_reason or '' }}" placeholder="e.g. UTR not found in bank statement, amount mismatch">
+                    </div>
+
+                    <div class="form-group" id="additionalInfoGroup">
+                        <label>Information / Clearer Receipt Required (if requesting)</label>
+                        <input type="text" name="additional_info_notes" class="form-control" value="{{ order.additional_info_notes or '' }}" placeholder="e.g. Please re-upload full page receipt showing bank timestamp">
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 25px;">
+                        <button type="submit" name="action" value="approve" class="btn-primary" style="justify-content: center; background: #166534; padding: 12px;" onclick="return confirm('Confirm independent verification in company bank account for this payment?');">
+                            ✓ Verify & Approve Payment
+                        </button>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <button type="submit" name="action" value="request_info" class="btn-warning" style="justify-content: center; padding: 10px;">
+                                ⚠ Request Info
+                            </button>
+                            <button type="submit" name="action" value="reject" class="btn-danger" style="justify-content: center; padding: 10px;">
+                                ✗ Reject Payment
+                            </button>
+                        </div>
+
+                        <button type="submit" name="action" value="refund" class="btn-outline" style="justify-content: center; font-size: 0.85rem; padding: 6px;" onclick="return confirm('Record refund processed for this order?');">
+                            Record Refund Processed
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,412 @@
+{% extends 'elearning/base.html' %}
+
+{% block title %}Examination Results - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 850px;">
+    <div style="background: var(--surface); padding: 40px; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); text-align: center;">
+
+        {% if attempt.passed %}
+            <!-- SUCCESS (PASSED >= 80%) -->
+            <div style="width: 80px; height: 80px; background: #dcfce7; color: var(--accent-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin: 0 auto 20px;">
+                ✓
+            </div>
+            <h1 style="color: #166534; font-size: 2.2rem; margin-bottom: 10px;">
+                You have successfully passed the test!
+            </h1>
+            <p style="color: var(--text-muted); font-size: 1.15rem; margin-bottom: 25px;">
+                Congratulations on completing the formal certification examination for <strong>{{ course.title }}</strong>.
+            </p>
+
+            <div style="background: #f0fdf4; border: 2px solid #bbf7d0; border-radius: var(--radius-md); padding: 20px; display: inline-block; min-width: 280px; margin-bottom: 25px;">
+                <div style="font-size: 2.2rem; font-weight: 800; color: #15803d;">
+                    {{ attempt.score }} / 20
+                </div>
+                <div style="font-weight: 700; color: #166534; font-size: 1.1rem;">
+                    Score: {{ attempt.percentage }}% (PASSED)
+                </div>
+                <div style="font-size: 0.85rem; color: #166534; margin-top: 4px;">
+                    Passing Requirement: 80% (16/20)
+                </div>
+            </div>
+
+            <!-- OPTION TO SEE INCORRECT RESPONSES FOR REVISION (PASSED TEST) (Requirement 6) -->
+            {% if total_incorrect > 0 %}
+                <div style="max-width: 750px; margin: 0 auto 25px;">
+                    <button type="button"
+                            id="btnToggleIncorrectPassed"
+                            onclick="toggleIncorrectResponses('incorrectResponsesPassed', 'toggleIncorrectIconPassed', 'toggleIncorrectTextPassed')"
+                            class="btn-secondary"
+                            style="padding: 10px 22px; font-size: 0.95rem; border-radius: 30px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                        <span id="toggleIncorrectIconPassed">🔍</span>
+                        <span id="toggleIncorrectTextPassed">See Incorrect Responses ({{ total_incorrect }}) for Revision</span>
+                    </button>
+                    
+                    <div id="incorrectResponsesPassed" style="display: none; margin-top: 18px; text-align: left;">
+                        <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                            <h3 style="color: var(--dark-navy); font-size: 1.15rem; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                                <span>📝</span> Questions Answered Incorrectly & Learning Justifications
+                            </h3>
+                            <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 16px;">
+                                Review the questions you answered incorrectly along with the correct response and regulatory justification:
+                            </p>
+
+                            {% for item in incorrect_questions %}
+                                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 14px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                                        <span style="font-weight: 800; color: #0284c7; font-size: 0.92rem;">
+                                            Question {{ item.number }} of 20
+                                        </span>
+                                        <span style="background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 700;">
+                                            ✗ Incorrect
+                                        </span>
+                                    </div>
+                                    <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem; line-height: 1.5; margin-bottom: 12px;">
+                                        {{ item.question_text }}
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 10px;">
+                                        <!-- User Submitted Response -->
+                                        <div style="background: #fef2f2; border: 1px solid #fca5a5; border-radius: 6px; padding: 8px 12px;">
+                                            <div style="font-size: 0.75rem; font-weight: 700; color: #991b1b; text-transform: uppercase;">
+                                                Your Response:
+                                            </div>
+                                            <div style="font-size: 0.9rem; color: #7f1d1d; font-weight: 600; margin-top: 2px;">
+                                                {% if item.user_choice %}
+                                                    Option {{ item.user_choice }}: {{ item.user_choice_text }}
+                                                {% else %}
+                                                    (No answer was submitted)
+                                                {% endif %}
+                                            </div>
+                                        </div>
+
+                                        <!-- Correct Response -->
+                                        <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 8px 12px;">
+                                            <div style="font-size: 0.75rem; font-weight: 700; color: #166534; text-transform: uppercase;">
+                                                ✓ Correct Response:
+                                            </div>
+                                            <div style="font-size: 0.9rem; color: #14532d; font-weight: 700; margin-top: 2px;">
+                                                Option {{ item.correct_option }}: {{ item.correct_option_text }}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Explanation / Justification -->
+                                    {% if item.explanation %}
+                                        <div style="background: #f1f5f9; border-left: 4px solid #0284c7; border-radius: 0 6px 6px 0; padding: 8px 12px; font-size: 0.88rem; color: #334155; line-height: 1.5;">
+                                            <strong>Key Learning / Justification:</strong> {{ item.explanation }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 10px 18px; display: inline-block; margin-bottom: 20px; font-size: 0.92rem; color: #065f46; font-weight: 600;">
+                    🌟 Perfect Score! You answered all 20 questions correctly.
+                </div>
+            {% endif %}
+
+            <!-- NEXT STEPS BASED ON ENROLMENT OPTION -->
+            {% if enrolment.certificate_option == 'paid' %}
+                <div style="text-align: left; background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 30px; margin-top: 20px;">
+                    <h3 style="color: var(--dark-navy); margin-bottom: 15px;">Certificate Issuance & Verification Status</h3>
+
+                    <!-- Step 1: Delivery Address -->
+                    <div style="display: flex; gap: 15px; margin-bottom: 20px; align-items: flex-start;">
+                        <span style="background: {{ '#10b981' if current_user.has_delivery_address else '#f59e0b' }}; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: bold;">
+                            1
+                        </span>
+                        <div>
+                            <strong>Physical Certificate Delivery Address</strong>
+                            {% if current_user.has_delivery_address %}
+                                <p style="font-size: 0.9rem; color: #166534; margin-top: 4px;">
+                                    ✓ Saved: {{ current_user.house_no }}, {{ current_user.street }}, {{ current_user.city }}, {{ current_user.state }} - {{ current_user.pincode }}
+                                    (<a href="{{ url_for('payments.delivery_address', enrolment_id=enrolment.id) }}" style="color:var(--primary);">Edit</a>)
+                                </p>
+                            {% else %}
+                                <p style="font-size: 0.9rem; color: #b45309; margin-top: 4px;">
+                                    Please enter your physical shipping address so your printed certificate can be dispatched.
+                                </p>
+                                <a href="{{ url_for('payments.delivery_address', enrolment_id=enrolment.id) }}" class="btn-primary" style="margin-top: 8px; font-size: 0.85rem; padding: 6px 14px;">
+                                    Enter Delivery Address ➔
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Payment Verification -->
+                    <div style="display: flex; gap: 15px; margin-bottom: 20px; align-items: flex-start;">
+                        <span style="background: {{ '#10b981' if payment_order and payment_order.status in ['verified_approved', 'certificate_issued', 'certificate_dispatched', 'certificate_delivered'] else '#f59e0b' }}; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: bold;">
+                            2
+                        </span>
+                        <div>
+                            <strong>Manual Payment Verification</strong>
+                            {% if not payment_order or payment_order.status == 'pending_submission' %}
+                                <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">
+                                    Please submit your manual payment receipt / UTR details for independent admin verification.
+                                </p>
+                                <a href="{{ url_for('payments.payment_page', order_ref=payment_order.order_reference if payment_order else 'new') }}" class="btn-secondary" style="margin-top: 8px; font-size: 0.85rem; padding: 6px 14px;">
+                                    Submit Payment Proof ➔
+                                </a>
+                            {% elif payment_order.status == 'under_review' %}
+                                <p style="font-size: 0.9rem; color: #b45309; margin-top: 4px;">
+                                    ⏳ Your payment of <strong>₹{{ "%.2f"|format(payment_order.expected_amount) }}</strong> (Ref: {{ payment_order.order_reference }}) is currently <strong>Under Admin Review</strong>. Verification typically takes 12 to 24 business hours.
+                                </p>
+                                <a href="{{ url_for('payments.payment_status', order_ref=payment_order.order_reference) }}" class="btn-outline" style="margin-top: 8px; font-size: 0.85rem; padding: 6px 14px;">
+                                    View Payment Tracker ➔
+                                </a>
+                            {% elif payment_order.status in ['verified_approved', 'certificate_issued', 'certificate_dispatched', 'certificate_delivered'] %}
+                                <p style="font-size: 0.9rem; color: #166534; margin-top: 4px;">
+                                    ✓ Payment Verified & Approved (UTR: {{ payment_order.transaction_reference }})
+                                </p>
+                                <a href="{{ url_for('payments.download_invoice', order_ref=payment_order.order_reference) }}" class="btn-outline" style="margin-top: 8px; font-size: 0.85rem; padding: 6px 14px;">
+                                    Download Tax Receipt 🧾
+                                </a>
+                            {% elif payment_order.status == 'additional_info_required' %}
+                                <p style="font-size: 0.9rem; color: #c2410c; margin-top: 4px;">
+                                    ⚠ Finance Admin requested additional info: {{ payment_order.additional_info_notes }}
+                                </p>
+                                <a href="{{ url_for('payments.payment_page', order_ref=payment_order.order_reference) }}" class="btn-warning" style="margin-top: 8px; font-size: 0.85rem; padding: 6px 14px;">
+                                    Update Payment Details ➔
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Certificate Download -->
+                    <div style="display: flex; gap: 15px; align-items: flex-start;">
+                        <span style="background: {{ '#10b981' if enrolment.certificate and payment_order and payment_order.status in ['verified_approved', 'certificate_issued', 'certificate_dispatched', 'certificate_delivered'] else '#94a3b8' }}; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: bold;">
+                            3
+                        </span>
+                        <div>
+                            <strong>Certificate Generation & Download</strong>
+                            {% if enrolment.certificate and payment_order and payment_order.status in ['verified_approved', 'certificate_issued', 'certificate_dispatched', 'certificate_delivered'] %}
+                                <p style="font-size: 0.9rem; color: #166534; margin-top: 4px;">
+                                    ✓ Certificate <strong>{{ enrolment.certificate.certificate_id }}</strong> has been verified & issued!
+                                </p>
+                                <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                                    <a href="{{ url_for('certificates.view_certificate', cert_id=enrolment.certificate.certificate_id) }}" class="btn-primary" style="font-size: 0.9rem; padding: 8px 18px;">
+                                        View Certificate Online 👁
+                                    </a>
+                                    <a href="{{ url_for('certificates.download_certificate_pdf', cert_id=enrolment.certificate.certificate_id) }}" class="btn-secondary" style="font-size: 0.9rem; padding: 8px 18px;">
+                                        Download Official PDF 📥
+                                    </a>
+                                </div>
+                            {% else %}
+                                <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">
+                                    The certificate will appear and be available to download only after confirmation of payment by Finance or Admin.
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 25px;">
+                    <a href="{{ url_for('elearning.slide_player', slug=course.slug, slide_num=1) }}" class="btn-outline">
+                        Revise Course Slides 📖
+                    </a>
+                </div>
+            {% else %}
+                <!-- FREE AUDIT OPTION PASSED -->
+                <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 25px; margin-top: 25px;">
+                    <h3 style="color: var(--dark-navy); margin-bottom: 8px;">Free Audit Track Completed</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem;">
+                        You chose the free audit option for this course. Your passing score of {{ attempt.percentage }}% has been logged.
+                    </p>
+                    
+                    {% if not enrolment.is_free_upgrade_expired %}
+                        <!-- 1-MONTH WINDOW ACTIVE -->
+                        <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 14px 18px; margin: 15px 0;">
+                            <div style="font-weight: 700; color: #166534; font-size: 0.95rem; margin-bottom: 4px;">
+                                ⏳ 1-Month Window to Pay & Download Certificate Active
+                            </div>
+                            <div style="font-size: 0.9rem; color: #15803d; line-height: 1.5;">
+                                You successfully completed the test on <strong>{{ (attempt.submitted_at or attempt.started_at).strftime('%d %B %Y') }}</strong>. 
+                                You have 1 month (until <strong>{{ enrolment.free_upgrade_deadline.strftime('%d %B %Y') }}</strong>, <strong>{{ enrolment.free_upgrade_days_remaining }} days remaining</strong>) to pay and download your official accredited certificate.
+                            </div>
+                        </div>
+                        <form action="{{ url_for('elearning.enrol_course', slug=course.slug) }}" method="POST" style="margin-top: 15px;">
+                            <input type="hidden" name="certificate_option" value="paid">
+                            <button type="submit" class="btn-primary">
+                                Upgrade to Paid Certificate (₹{{ "%.2f"|format(course.total_price_inr) }}) ➔
+                            </button>
+                        </form>
+                    {% else %}
+                        <!-- 1-MONTH WINDOW EXPIRED -->
+                        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 14px 18px; margin: 15px 0;">
+                            <div style="font-weight: 700; color: #991b1b; font-size: 0.95rem; margin-bottom: 4px;">
+                                ⚠️ 1-Month Upgrade Window Expired
+                            </div>
+                            <div style="font-size: 0.9rem; color: #7f1d1d; line-height: 1.5;">
+                                The 1-month window to pay and download a certificate for your test attempt on {{ (attempt.submitted_at or attempt.started_at).strftime('%d %B %Y') }} expired on <strong>{{ enrolment.free_upgrade_deadline.strftime('%d %B %Y') }}</strong>.
+                                To obtain an official certificate, please revise the course slides and retake the examination.
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <div style="margin-top: 20px;">
+                        <a href="{{ url_for('elearning.slide_player', slug=course.slug, slide_num=1) }}" class="btn-outline">
+                            Revise Course Slides 📖
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+
+        {% else %}
+            <!-- FAILED ATTEMPT (< 80%) -->
+            <div style="width: 80px; height: 80px; background: #fee2e2; color: var(--danger); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin: 0 auto 20px;">
+                ✗
+            </div>
+            <h1 style="color: var(--danger); font-size: 2.2rem; margin-bottom: 12px; font-weight: 800;">
+                Test Not Passed
+            </h1>
+
+            <div style="background: #fef2f2; border: 2px solid #f87171; border-radius: var(--radius-md); padding: 22px; max-width: 650px; margin: 0 auto 25px; text-align: center;">
+                <div style="font-size: 2.2rem; font-weight: 800; color: #991b1b; margin-bottom: 6px;">
+                    {{ attempt.score }} / 20 &nbsp;({{ "%.1f"|format(attempt.percentage) }}%)
+                </div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: #b91c1c; margin-bottom: 12px;">
+                    Passing Mandate: Minimum 80% (16 / 20 Correct Responses)
+                </div>
+                <p style="font-size: 1.05rem; color: #7f1d1d; line-height: 1.6; margin: 0; font-weight: 600;">
+                    You did not clear the required mandate of correct responses to pass the test and hence need to appear for the test again.
+                </p>
+            </div>
+
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; text-align: left; max-width: 650px; margin: 0 auto 25px;">
+                <h4 style="color: var(--dark-navy); margin-bottom: 8px;">Attempt Summary & Next Steps:</h4>
+                <ul style="padding-left: 20px; font-size: 0.95rem; color: #334155; line-height: 1.7; margin: 0;">
+                    <li><strong>Attempt Completed:</strong> Attempt {{ attempt.attempt_number }} of 3</li>
+                    <li><strong>Remaining in this cycle:</strong> <strong>{{ remaining_attempts }}</strong> attempt(s) remaining</li>
+                    <li>You may inspect all your incorrectly answered questions below for revision, revise the presentation slides, or appear for the test again when ready.</li>
+                </ul>
+            </div>
+
+            <!-- OPTION TO SEE INCORRECT RESPONSES FOR REVISION (Requirement 3) -->
+            {% if total_incorrect > 0 %}
+                <div style="max-width: 750px; margin: 0 auto 25px;">
+                    <button type="button"
+                            id="btnToggleIncorrect"
+                            onclick="toggleIncorrectResponses()"
+                            class="btn-secondary"
+                            style="padding: 12px 26px; font-size: 1rem; border-radius: 30px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                        <span id="toggleIncorrectIcon">🔍</span>
+                        <span id="toggleIncorrectText">See Incorrect Responses ({{ total_incorrect }}) for Revision</span>
+                    </button>
+                    
+                    <div id="incorrectResponsesSection" style="display: none; margin-top: 20px; text-align: left;">
+                        <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                            <h3 style="color: var(--dark-navy); font-size: 1.25rem; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                                <span>📝</span> Review Incorrect Questions & Learning Rationales
+                            </h3>
+                            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+                                Use the correct answers and explanations below to strengthen your understanding before retaking the examination.
+                            </p>
+
+                            {% for item in incorrect_questions %}
+                                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin-bottom: 16px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                                        <span style="font-weight: 800; color: #0284c7; font-size: 0.95rem;">
+                                            Question {{ item.number }} of 20
+                                        </span>
+                                        <span style="background: #fee2e2; color: #991b1b; padding: 2px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 700;">
+                                            ✗ Incorrect
+                                        </span>
+                                    </div>
+                                    <div style="font-weight: 700; color: #1e293b; font-size: 1rem; line-height: 1.5; margin-bottom: 14px;">
+                                        {{ item.question_text }}
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 12px;">
+                                        <!-- User Submitted Response -->
+                                        <div style="background: #fef2f2; border: 1px solid #fca5a5; border-radius: 6px; padding: 10px 14px;">
+                                            <div style="font-size: 0.8rem; font-weight: 700; color: #991b1b; text-transform: uppercase;">
+                                                Your Submitted Response:
+                                            </div>
+                                            <div style="font-size: 0.95rem; color: #7f1d1d; font-weight: 600; margin-top: 2px;">
+                                                {% if item.user_choice %}
+                                                    Option {{ item.user_choice }}: {{ item.user_choice_text }}
+                                                {% else %}
+                                                    (No answer was submitted)
+                                                {% endif %}
+                                            </div>
+                                        </div>
+
+                                        <!-- Correct Response -->
+                                        <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 10px 14px;">
+                                            <div style="font-size: 0.8rem; font-weight: 700; color: #166534; text-transform: uppercase;">
+                                                ✓ Correct Response:
+                                            </div>
+                                            <div style="font-size: 0.95rem; color: #14532d; font-weight: 700; margin-top: 2px;">
+                                                Option {{ item.correct_option }}: {{ item.correct_option_text }}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Explanation / Rationale -->
+                                    {% if item.explanation %}
+                                        <div style="background: #f1f5f9; border-left: 4px solid #0284c7; border-radius: 0 6px 6px 0; padding: 10px 14px; font-size: 0.9rem; color: #334155; line-height: 1.5;">
+                                            <strong>Key Learning / Rationale:</strong> {{ item.explanation }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div style="margin-top: 25px;">
+                {% if remaining_attempts > 0 %}
+                    <a href="{{ url_for('elearning.slide_player', slug=course.slug, slide_num=1) }}" class="btn-primary" style="background:#0284c7; border-color:#0284c7; padding: 14px 32px; font-size: 1.05rem; border-radius: 30px; margin-right: 12px; margin-bottom: 10px; display: inline-flex; align-items: center; gap: 8px;">
+                        Revise Course Slides 📖
+                    </a>
+                    <a href="{{ url_for('tests.take_test', slug=course.slug) }}" class="btn-outline" style="padding: 14px 32px; font-size: 1.05rem; border-radius: 30px; margin-bottom: 10px; display: inline-flex; align-items: center; gap: 8px;">
+                        Appear for the Test Again (Attempt {{ attempt.attempt_number + 1 }} of 3) ➔
+                    </a>
+                {% else %}
+                    <div style="color: #991b1b; margin-bottom: 15px; font-weight: 700; font-size: 1.1rem;">
+                        You have exhausted all 3 attempts for this presentation cycle.
+                    </div>
+                    <p style="color: #64748b; font-size: 0.95rem; margin-bottom: 20px;">
+                        To unlock 3 more attempts, please review the complete course presentation slides again.
+                    </p>
+                    <form action="{{ url_for('tests.restart_presentation', slug=course.slug) }}" method="POST">
+                        <button type="submit" class="btn-primary" style="padding: 14px 35px; font-size: 1.1rem; border-radius: 30px;">
+                            Review Presentation to Unlock 3 More Attempts ➔
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+            <a href="{{ url_for('elearning.courses_list') }}" style="color:var(--primary);text-decoration:none;font-weight:600;">
+                ← Back to Courses Catalog
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleIncorrectResponses(sectionId, iconId, textId) {
+    const sec = document.getElementById(sectionId || 'incorrectResponsesSection');
+    const icon = document.getElementById(iconId || 'toggleIncorrectIcon');
+    const txt = document.getElementById(textId || 'toggleIncorrectText');
+    if (!sec) return;
+    
+    if (sec.style.display === 'none' || sec.style.display === '') {
+        sec.style.display = 'block';
+        if (icon) icon.textContent = '▲';
+        if (txt) txt.textContent = 'Hide Incorrect Responses';
+        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        sec.style.display = 'none';
+        if (icon) icon.textContent = '🔍';
+        if (txt) txt.textContent = 'See Incorrect Responses ({{ total_incorrect }}) for Revision';
+    }
+}
+</script>
+{% endblock %}

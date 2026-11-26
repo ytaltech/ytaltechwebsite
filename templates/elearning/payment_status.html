@@ -1,0 +1,156 @@
+{% extends 'elearning/base.html' %}
+
+{% block title %}Payment Status - {{ order.order_reference }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 850px;">
+    <div style="background: var(--surface); padding: 35px; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); border-top: 5px solid var(--primary); margin-bottom: 25px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px;">
+            <div>
+                <span class="status-badge status-{{ order.status }}" style="font-size: 0.85rem; padding: 4px 12px; margin-bottom: 8px;">
+                    Status: {{ order.status.replace('_', ' ').title() }}
+                </span>
+                <h1 style="color: var(--dark-navy); margin: 6px 0; font-size: 1.8rem;">Payment & Certification Tracker</h1>
+                <p style="color: var(--text-muted); font-size: 0.95rem;">
+                    Course: <strong>{{ order.course.title }}</strong> &nbsp;|&nbsp; Order ID: <strong>{{ order.order_reference }}</strong>
+                </p>
+            </div>
+            {% if order.status in ['verified_approved', 'certificate_issued', 'certificate_dispatched', 'certificate_delivered'] %}
+                <div>
+                    <a href="{{ url_for('payments.download_invoice', order_ref=order.order_reference) }}" class="btn-outline">
+                        Download Tax Receipt 🧾
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- PROGRESS STEPPER -->
+        <div style="display: flex; justify-content: space-between; margin: 35px 0 25px; position: relative;">
+            <div style="position: absolute; top: 15px; left: 10%; right: 10%; height: 3px; background: #e2e8f0; z-index: 1;"></div>
+            
+            <!-- Step 1: Submission -->
+            {% set s1_done = order.status != 'pending_submission' %}
+            <div style="text-align: center; position: relative; z-index: 2;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: {{ '#10b981' if s1_done else '#e2e8f0' }}; color: #fff; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                    ✓
+                </div>
+                <div style="font-size: 0.8rem; font-weight: 600; color: var(--dark-navy);">Proof Submitted</div>
+            </div>
+
+            <!-- Step 2: Under Review -->
+            {% set s2_done = order.status in ['verified_approved', 'certificate_issued', 'certificate_dispatched', 'certificate_delivered'] %}
+            {% set s2_active = order.status == 'under_review' %}
+            <div style="text-align: center; position: relative; z-index: 2;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: {{ '#10b981' if s2_done else ('#f59e0b' if s2_active else '#e2e8f0') }}; color: #fff; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                    {{ '✓' if s2_done else '2' }}
+                </div>
+                <div style="font-size: 0.8rem; font-weight: 600; color: var(--dark-navy);">Bank Verification</div>
+            </div>
+
+            <!-- Step 3: Verified -->
+            <div style="text-align: center; position: relative; z-index: 2;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: {{ '#10b981' if s2_done else '#e2e8f0' }}; color: #fff; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                    {{ '✓' if s2_done else '3' }}
+                </div>
+                <div style="font-size: 0.8rem; font-weight: 600; color: var(--dark-navy);">Payment Approved</div>
+            </div>
+
+            <!-- Step 4: Certificate Issued -->
+            {% set s4_done = order.status in ['certificate_issued', 'certificate_dispatched', 'certificate_delivered'] %}
+            <div style="text-align: center; position: relative; z-index: 2;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: {{ '#10b981' if s4_done else '#e2e8f0' }}; color: #fff; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                    {{ '✓' if s4_done else '4' }}
+                </div>
+                <div style="font-size: 0.8rem; font-weight: 600; color: var(--dark-navy);">Certificate Issued</div>
+            </div>
+        </div>
+
+        <!-- DETAILS SUMMARY TABLE -->
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; margin-top: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="color: var(--dark-navy); margin: 0; font-size: 1.1rem;">Transaction Details</h3>
+                {% if order.status in ['verified_approved', 'certificate_issued', 'certificate_dispatched', 'certificate_delivered'] %}
+                    <a href="{{ url_for('payments.download_invoice', order_ref=order.order_reference) }}" class="btn-primary" style="font-size: 0.85rem; padding: 6px 14px;">
+                        Download Tax Receipt 📄
+                    </a>
+                {% endif %}
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; font-size: 0.92rem;">
+                <div><strong>Payment Region:</strong> <span class="meta-tag">{{ order.region_label }}</span></div>
+                <div><strong>Base Taxable Amount:</strong> {{ '₹' if order.currency == 'INR' else '$' }}{{ "%.2f"|format(order.base_amount) }}</div>
+                <div><strong>GST Amount (18%):</strong> {{ ('₹' + "%.2f"|format(order.gst_amount)) if order.currency == 'INR' else '— (International)' }}</div>
+                <div><strong>Total Amount:</strong> <strong>{{ '₹' if order.currency == 'INR' else '$' }}{{ "%.2f"|format(order.total_amount) }}</strong></div>
+                <div><strong>Payment Mode:</strong> {{ order.payment_mode or 'Pending' }}</div>
+                <div><strong>Transaction Ref / UTR:</strong> <code>{{ order.transaction_reference or 'Pending' }}</code></div>
+                <div><strong>Payer Name:</strong> {{ order.payer_name or 'N/A' }}</div>
+                <div><strong>Submission Date:</strong> {{ order.submitted_at.strftime('%d-%b-%Y %H:%M') if order.submitted_at else 'Draft' }}</div>
+                {% if order.customer_gstin %}
+                    <div><strong>Customer GSTIN:</strong> <code>{{ order.customer_gstin }}</code></div>
+                {% endif %}
+                <div>
+                    <strong>Proof Uploaded:</strong>
+                    {% if order.proof_file_path %}
+                        <a href="{{ url_for('static', filename=order.proof_file_path) }}" target="_blank" style="color:var(--primary);font-weight:600;">View Uploaded File ↗</a>
+                    {% else %}
+                        <span style="color:#ef4444;">Not uploaded</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- WHATSAPP SHARE CALLOUT -->
+            {% if order.status in ['pending_submission', 'under_review', 'additional_info_required'] %}
+                <div style="margin-top: 15px; background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 12px 14px; display: flex; align-items: center; gap: 12px;">
+                    <div style="font-size: 1.6rem; line-height: 1;">📲</div>
+                    <div style="font-size: 0.85rem; color: #166534; line-height: 1.4;">
+                        <strong>Additionally, you may share the payment screenshot on Whatsapp: <a href="https://wa.me/919372571921?text=Payment%20Screenshot%20for%20Order%20{{ order.order_reference }}" target="_blank" style="color: #15803d; font-weight: 800; text-decoration: underline;">9372571921</a></strong>.
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- ADMIN ACTION NOTES OR REQUESTS -->
+            {% if order.status == 'additional_info_required' %}
+                <div style="margin-top: 20px; padding: 15px; background: #fff7ed; border-left: 4px solid #ea580c; border-radius: 4px; color: #9a3412;">
+                    <strong>Finance Administrator Request:</strong>
+                    <p style="margin-top: 4px;">{{ order.additional_info_notes }}</p>
+                    <a href="{{ url_for('payments.payment_page', order_ref=order.order_reference) }}" class="btn-warning" style="margin-top: 10px; display: inline-block; padding: 6px 16px; font-size: 0.85rem;">
+                        Update Submission Details ➔
+                    </a>
+                </div>
+            {% elif order.status == 'rejected' %}
+                <div style="margin-top: 20px; padding: 15px; background: #fef2f2; border-left: 4px solid #dc2626; border-radius: 4px; color: #991b1b;">
+                    <strong>Payment Rejection Reason:</strong>
+                    <p style="margin-top: 4px;">{{ order.rejection_reason }}</p>
+                    <a href="{{ url_for('payments.payment_page', order_ref=order.order_reference) }}" class="btn-secondary" style="margin-top: 10px; display: inline-block; padding: 6px 16px; font-size: 0.85rem;">
+                        Re-Submit Corrected Payment ➔
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- CERTIFICATE CALLOUT -->
+        {% if order.enrolment.certificate and order.status in ['verified_approved', 'certificate_issued', 'certificate_dispatched', 'certificate_delivered'] %}
+            <div style="margin-top: 25px; padding: 25px; background: #f0fdf4; border: 2px solid #bbf7d0; border-radius: var(--radius-md); text-align: center;">
+                <h3 style="color: #166534; margin-bottom: 8px;">🎉 Your Official Certificate has been Issued!</h3>
+                <p style="color: #15803d; font-size: 0.95rem; margin-bottom: 15px;">
+                    Certificate ID: <strong>{{ order.enrolment.certificate.certificate_id }}</strong>
+                </p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <a href="{{ url_for('certificates.view_certificate', cert_id=order.enrolment.certificate.certificate_id) }}" class="btn-primary">
+                        View Certificate 👁
+                    </a>
+                    <a href="{{ url_for('certificates.download_certificate_pdf', cert_id=order.enrolment.certificate.certificate_id) }}" class="btn-secondary">
+                        Download PDF 📥
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="{{ url_for('elearning.courses_list') }}" style="color:var(--primary);text-decoration:none;">
+                ← Back to Courses
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

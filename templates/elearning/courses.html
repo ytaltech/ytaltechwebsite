@@ -1,0 +1,160 @@
+{% extends 'elearning/base.html' %}
+
+{% block title %}E-Learning Courses Catalog{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div style="text-align: center; margin-bottom: 40px;">
+        <h1 class="section-title">Professional E-Learning Programs</h1>
+        <p style="max-width: 800px; margin: 0 auto; color: var(--text-muted); font-size: 1.15rem;">
+            Advance your clinical research expertise with accredited regulatory training modules. 
+            Each course provides interactive presentation slides, continuous practice assessments, 
+            a comprehensive 20-question certification examination, and verifiable tamper-proof certificates.
+        </p>
+    </div>
+
+    <!-- COURSE CARDS GRID -->
+    <div class="courses-grid">
+        {% for course in courses %}
+            {% set enr = enrolment_map.get(course.id) if enrolment_map else None %}
+            <div class="course-card">
+                <div class="course-card-header">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <span class="meta-tag" style="background:#e0f2fe;color:#0369a1;font-weight:700;">{{ course.version }}</span>
+                        {% if enr and enr.has_passed_test %}
+                            <span class="meta-tag" style="background:#dcfce7;color:#166534;font-weight:700;">✓ PASSED</span>
+                        {% elif enr and enr.slides_completed and enr.attempts_used_in_current_cycle > 0 %}
+                            <span class="meta-tag" style="background:#fee2e2;color:#991b1b;font-weight:700;">Test Not Passed</span>
+                        {% elif enr and enr.slides_completed %}
+                            <span class="meta-tag" style="background:#fef3c7;color:#b45309;font-weight:700;">Test Unlocked</span>
+                        {% elif enr %}
+                            <span class="meta-tag" style="background:#f1f5f9;color:#475569;">In Progress</span>
+                        {% endif %}
+                    </div>
+                    <h3 style="margin-top: 12px;">{{ course.title }}</h3>
+                    <div class="course-meta-tags">
+                        <span class="meta-tag">⏱ {{ course.estimated_duration }}</span>
+                        <span class="meta-tag">🌐 {{ course.language }}</span>
+                        <span class="meta-tag">📜 Verifiable Certificate</span>
+                    </div>
+                </div>
+
+                <div class="course-card-body">
+                    <p class="course-desc">{{ course.short_description }}</p>
+
+                    <!-- Pricing Box -->
+                    <div class="course-pricing-box">
+                        <div>
+                            <div class="price-inr">₹{{ "%.2f"|format(course.total_price_inr) }}</div>
+                            <div class="price-sub">₹{{ "%.2f"|format(course.price_inr) }} + 18% GST (India)</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 700; color: #0284c7;">${{ "%.2f"|format(course.price_usd) }} USD</div>
+                            <div class="price-sub">International</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: auto;">
+                        {% if is_logged_in %}
+                            {% if enr %}
+                                {% if enr.has_passed_test %}
+                                    {% if enr.certificate and enr.is_payment_approved %}
+                                        <a href="{{ url_for('certificates.view_certificate', cert_id=enr.certificate.certificate_id) }}" class="btn-primary" style="width:100%;justify-content:center;">
+                                            View & Download Certificate ➔
+                                        </a>
+                                    {% elif enr.certificate_option == 'paid' %}
+                                        <a href="{{ url_for('tests.test_result_summary', slug=course.slug) }}" class="btn-primary" style="width:100%;justify-content:center;">
+                                            Payment Verification / Certificate Status ➔
+                                        </a>
+                                    {% else %}
+                                        {% if not enr.is_free_upgrade_expired %}
+                                            <a href="{{ url_for('tests.test_result_summary', slug=course.slug) }}" class="btn-primary" style="width:100%;justify-content:center;">
+                                                Exam Passed • Upgrade ({{ enr.free_upgrade_days_remaining }}d left) ➔
+                                            </a>
+                                        {% else %}
+                                            <a href="{{ url_for('tests.test_result_summary', slug=course.slug) }}" class="btn-secondary" style="width:100%;justify-content:center;">
+                                                Audit Passed • Upgrade Window Expired ➔
+                                            </a>
+                                        {% endif %}
+                                    {% endif %}
+                                    <a href="{{ url_for('elearning.slide_player', slug=course.slug, slide_num=1) }}" class="btn-outline" style="width:100%;justify-content:center;margin-top:8px;font-size:0.85rem;padding:6px 12px;">
+                                        Revise Course Slides 📖
+                                    </a>
+                                {% elif enr.slides_completed %}
+                                    {% if enr.attempts_used_in_current_cycle > 0 and enr.attempts_used_in_current_cycle < 3 %}
+                                        <a href="{{ url_for('tests.take_test', slug=course.slug) }}" class="btn-primary" style="width:100%;justify-content:center;background:#dc2626;border-color:#dc2626;">
+                                            Appear for the Test Again (Attempt {{ enr.attempts_used_in_current_cycle + 1 }} of 3) ➔
+                                        </a>
+                                        <p style="font-size:0.8rem;color:#991b1b;margin:5px 0 0 0;text-align:center;font-weight:600;">
+                                            Did not clear required 80% mandate. Please appear for test again.
+                                        </p>
+                                    {% else %}
+                                        <a href="{{ url_for('tests.take_test', slug=course.slug) }}" class="btn-secondary" style="width:100%;justify-content:center;">
+                                            Take Final Examination (20 MCQs) ➔
+                                        </a>
+                                    {% endif %}
+                                    <a href="{{ url_for('elearning.slide_player', slug=course.slug, slide_num=1) }}" class="btn-outline" style="width:100%;justify-content:center;margin-top:8px;font-size:0.85rem;padding:6px 12px;">
+                                        Revise Course Slides 📖
+                                    </a>
+                                {% else %}
+                                    <a href="{{ url_for('elearning.slide_player', slug=course.slug, slide_num=enr.current_slide_number) }}" class="btn-primary" style="width:100%;justify-content:center;">
+                                        Continue Slide {{ enr.current_slide_number }} ➔
+                                    </a>
+                                {% endif %}
+                            {% else %}
+                                <a href="{{ url_for('elearning.course_detail', slug=course.slug) }}" class="btn-primary" style="width:100%;justify-content:center;">
+                                    View Course & Enrol ➔
+                                </a>
+                            {% endif %}
+                        {% else %}
+                            <a href="{{ url_for('auth.login', next=url_for('elearning.course_detail', slug=course.slug)) }}" class="btn-primary" style="width:100%;justify-content:center;">
+                                Sign Up / Log In to Enrol ➔
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- BULK DISCOUNT BANNER (Requirement 6) -->
+    <div style="margin-top: 35px; background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 2px dashed #10b981; border-radius: 12px; padding: 22px 28px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px; box-shadow: var(--shadow-sm);">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="font-size: 2.2rem; background: #dcfce7; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">💼</div>
+            <div>
+                <h4 style="color: #065f46; font-size: 1.15rem; margin-bottom: 4px; font-weight: 700;">Bulk Discounts Available for Institutional Teams</h4>
+                <p style="color: #047857; font-size: 0.95rem; margin: 0; line-height: 1.5;">
+                    Special pricing available for Ethics Committee (EC) members, clinical trial site teams, CROs, and academic institutions.<br>
+                    <strong>Please get in touch with us on <a href="mailto:bd@ytaltech.com?subject=Bulk%20Discount%20Inquiry%20-%20E-Learning" style="color: #065f46; text-decoration: underline; font-weight: 800;">bd@ytaltech.com</a> for bulk discount.</strong>
+                </p>
+            </div>
+        </div>
+        <div>
+            <a href="mailto:bd@ytaltech.com?subject=Bulk%20Discount%20Inquiry%20-%20E-Learning" class="btn-primary" style="background: #059669; border-color: #059669; white-space: nowrap; padding: 10px 22px; font-weight: 600;">
+                Inquire for Bulk Discount ✉
+            </a>
+        </div>
+    </div>
+
+    <!-- TRUST & ACCREDITATION BANNER -->
+    <div style="margin-top: 60px; background: #ffffff; padding: 35px; border-radius: 12px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 25px; text-align: center;">
+            <div>
+                <div style="font-size: 2rem; color: var(--primary-color); margin-bottom: 8px;">📑</div>
+                <h4 style="color: var(--dark-navy); margin-bottom: 6px;">ALCOA+ & GxP Rigor</h4>
+                <p style="font-size: 0.9rem; color: var(--text-muted);">Curriculum strictly aligned with US FDA, EMA, and CDSCO standards.</p>
+            </div>
+            <div>
+                <div style="font-size: 2rem; color: var(--secondary-color); margin-bottom: 8px;">⏱</div>
+                <h4 style="color: var(--dark-navy); margin-bottom: 6px;">Structured Dwell Learning</h4>
+                <p style="font-size: 0.9rem; color: var(--text-muted);">Minimum 1-minute dwell pacing per slide to ensure authentic comprehension.</p>
+            </div>
+            <div>
+                <div style="font-size: 2rem; color: var(--accent-green); margin-bottom: 8px;">🔐</div>
+                <h4 style="color: var(--dark-navy); margin-bottom: 6px;">Tamper-Proof Certificates</h4>
+                <p style="font-size: 0.9rem; color: var(--text-muted);">Cryptographically signed SHA-256 digital certificate with live QR verification.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

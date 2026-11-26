@@ -1,0 +1,191 @@
+{% extends 'elearning/base.html' %}
+
+{% block title %}Payment Details - {{ order.order_reference }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 950px;">
+    <!-- TOP HEADER -->
+    <div style="background: var(--surface); padding: 30px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border-top: 5px solid var(--secondary); margin-bottom: 25px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px;">
+            <div>
+                <span class="meta-tag" style="background:#fdf2f8;color:var(--secondary);font-weight:700;">Manual Payment Submission</span>
+                <h1 style="color: var(--dark-navy); margin: 8px 0; font-size: 1.8rem;">Course Certification Payment</h1>
+                <p style="color: var(--text-muted); font-size: 1rem;">
+                    Course: <strong>{{ order.course.title }}</strong> &nbsp;|&nbsp; Learner: <strong>{{ order.user.full_name }}</strong>
+                </p>
+            </div>
+            <div style="text-align: right; background: #faf5ff; border: 1px solid #e9d5ff; padding: 12px 20px; border-radius: var(--radius-md);">
+                <div style="font-size: 0.85rem; color: var(--text-muted);">Unique Order Reference:</div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: var(--secondary);">{{ order.order_reference }}</div>
+                <div style="font-size: 0.75rem; color: #7e22ce;">Include this in UPI remarks / notes</div>
+            </div>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 30px;">
+        <!-- LEFT COLUMN: BANK DETAILS & UPI QR CODE -->
+        <div style="background: var(--surface); padding: 25px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);">
+            <h3 style="color: var(--primary); margin-bottom: 15px; font-size: 1.2rem;">Official Company Payment Accounts</h3>
+
+            <!-- AMOUNT PAYABLE -->
+            <div style="background: #f0fdf4; border-left: 4px solid var(--accent-green); padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 20px;">
+                <div style="font-size: 0.85rem; color: #166534;">Total Payable Amount:</div>
+                <div style="font-size: 1.6rem; font-weight: 800; color: #15803d;">
+                    ₹{{ "%.2f"|format(order.expected_amount) }} {{ order.currency }}
+                </div>
+                <div style="font-size: 0.8rem; color: #166534;">
+                    (₹{{ "%.2f"|format(order.course.price_inr) }} + 18% GST ₹{{ "%.2f"|format(order.gst_amount) }})
+                </div>
+            </div>
+
+            <!-- UPI QR CODE -->
+            <div style="text-align: center; background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; margin-bottom: 20px;">
+                <h4 style="color: var(--dark-navy); margin-bottom: 8px;">Scan & Pay via any UPI App</h4>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">Google Pay • PhonePe • Paytm • BHIM • Cred</p>
+                
+                <div style="background: #ffffff; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                    <img src="{{ url_for('static', filename=qr_image_url) }}" alt="Official SBI UPI Payment QR Code" style="max-width: 220px; width: 100%; height: auto; border-radius: 4px; display: block;">
+                </div>
+                
+                <div style="margin-top: 12px;">
+                    <div style="font-size: 0.9rem; font-weight: 700; color: var(--dark-navy);">UPI ID: <code>{{ upi_id }}</code></div>
+                    <a href="{{ upi_uri }}" class="btn-outline" style="font-size: 0.8rem; padding: 4px 10px; margin-top: 8px; display: inline-block;">
+                        Pay directly on mobile 📱
+                    </a>
+                </div>
+            </div>
+
+            <!-- BANK TRANSFER DETAILS -->
+            <div style="font-size: 0.88rem; color: #334155; line-height: 1.7;">
+                <h4 style="color: var(--dark-navy); margin-bottom: 8px;">Direct Bank Transfer (NEFT / RTGS / IMPS):</h4>
+                <div><strong>Account Name:</strong> {{ account_name }}</div>
+                <div><strong>Bank Name:</strong> {{ bank_name }}</div>
+                <div><strong>Account Number:</strong> <code>{{ account_num }}</code></div>
+                <div><strong>IFSC Code:</strong> <code>{{ ifsc }}</code></div>
+                <div><strong>Account Type:</strong> {{ account_type }}</div>
+                <div><strong>Branch:</strong> {{ bank_branch }}</div>
+            </div>
+
+            <!-- WHATSAPP SCREENSHOT INSTRUCTION (Requirement 5) -->
+            <div style="margin-top: 15px; background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 12px 14px; display: flex; align-items: center; gap: 12px;">
+                <div style="font-size: 1.8rem; line-height: 1;">📲</div>
+                <div style="font-size: 0.88rem; color: #166534; line-height: 1.5;">
+                    <strong>Additionally, you may share the payment screenshot on Whatsapp: <a href="https://wa.me/919372571921?text=Payment%20Screenshot%20for%20Order%20{{ order.order_reference }}" target="_blank" style="color: #15803d; font-weight: 800; text-decoration: underline;">9372571921</a></strong>.
+                    <div style="font-size: 0.78rem; color: #15803d; margin-top: 2px;">Please mention your Order Reference <code>{{ order.order_reference }}</code> in the WhatsApp message.</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 15px; font-size: 0.8rem; color: #64748b; background: #fffbeb; padding: 10px; border-radius: 4px; border: 1px solid #fef3c7;">
+                ℹ <strong>Expected Verification Timeline:</strong> {{ timeline }}.
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: MANUAL SUBMISSION FORM -->
+        <div style="background: var(--surface); padding: 25px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);">
+            <h3 style="color: var(--secondary); margin-bottom: 15px; font-size: 1.2rem;">Submit Payment Verification Proof</h3>
+
+            <form action="{{ url_for('payments.submit_payment', order_ref=order.order_reference) }}" method="POST" enctype="multipart/form-data">
+                
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label>Amount Paid *</label>
+                        <input type="number" step="0.01" name="amount_paid" class="form-control" value="{{ order.amount_paid or order.expected_amount }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Currency</label>
+                        <input type="text" name="currency" class="form-control" value="{{ order.currency }}" readonly style="background:#f1f5f9;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Payment Mode *</label>
+                    <select name="payment_mode" class="form-control" required>
+                        <option value="UPI" {% if order.payment_mode == 'UPI' %}selected{% endif %}>UPI (Google Pay, PhonePe, Paytm, etc.)</option>
+                        <option value="NEFT/RTGS/IMPS" {% if order.payment_mode == 'NEFT/RTGS/IMPS' %}selected{% endif %}>Bank Transfer (NEFT / RTGS / IMPS)</option>
+                        <option value="Cheque" {% if order.payment_mode == 'Cheque' %}selected{% endif %}>Cheque</option>
+                        <option value="Demand Draft" {% if order.payment_mode == 'Demand Draft' %}selected{% endif %}>Demand Draft</option>
+                        <option value="Other" {% if order.payment_mode == 'Other' %}selected{% endif %}>Other Wire Transfer</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Payment Date & Time *</label>
+                    <input type="datetime-local" name="payment_date" class="form-control" value="{{ order.payment_date.strftime('%Y-%m-%dT%H:%M') if order.payment_date else '' }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Transaction Reference / UTR / Bank Ref *</label>
+                    <input type="text" name="transaction_reference" class="form-control" value="{{ order.transaction_reference or '' }}" placeholder="e.g. 412389102934 or UTR12345678" required>
+                    <small style="color: #64748b; font-size: 0.78rem;">Enter the 12-digit UPI UTR or bank reference number from your receipt.</small>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label>Payer Name *</label>
+                        <input type="text" name="payer_name" class="form-control" value="{{ order.payer_name or current_user.full_name }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Payer Bank / UPI ID</label>
+                        <input type="text" name="payer_account_upi" class="form-control" value="{{ order.payer_account_upi or '' }}" placeholder="e.g. rahul@okaxis">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Upload Payment Screenshot / Receipt * (JPG, PNG, PDF, HEIC)</label>
+                    <input type="file" name="proof_file" class="form-control" accept=".jpg,.jpeg,.png,.pdf,.heic" {% if not order.proof_file_path %}required{% endif %}>
+                    {% if order.proof_file_path %}
+                        <div style="margin-top: 6px; font-size: 0.8rem; color: #15803d;">
+                            ✓ File currently uploaded: <a href="{{ url_for('static', filename=order.proof_file_path) }}" target="_blank" style="color:var(--primary);">View Uploaded Proof</a>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- OPTIONAL GST BILLING DETAILS FOR TAX INVOICE (Requirement 4) -->
+                <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 14px 16px; margin: 15px 0;">
+                    <div style="font-weight: 700; color: var(--dark-navy); font-size: 0.92rem; margin-bottom: 4px;">
+                        🏛️ GST Tax Receipt Details (Optional)
+                    </div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
+                        Provide your GST number and registered billing address if you wish to receive a GST-compliant tax receipt for input tax credit.
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <label style="font-size: 0.82rem;">Company / Organization Name (on Receipt)</label>
+                        <input type="text" name="customer_org_name" class="form-control" value="{{ order.customer_org_name or current_user.organization_name or '' }}" placeholder="e.g. BB Precision Oncocare Centre Pvt. Ltd.">
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.82rem;">Customer GSTIN / UIN</label>
+                            <input type="text" name="customer_gstin" class="form-control" maxlength="15" value="{{ order.customer_gstin or current_user.gstin or '' }}" placeholder="e.g. 27AADFY4241Q1ZL" style="text-transform: uppercase;">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.82rem;">State & State Code</label>
+                            <input type="text" name="customer_state" class="form-control" value="{{ order.customer_state or current_user.state or 'Maharashtra (State Code: 27)' }}" placeholder="e.g. Maharashtra (27)">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label style="font-size: 0.82rem;">Billing Address</label>
+                        <input type="text" name="customer_billing_address" class="form-control" value="{{ order.customer_billing_address or current_user.billing_address or '' }}" placeholder="Registered business address for invoice">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Additional Remarks (Optional)</label>
+                    <textarea name="learner_remarks" class="form-control" rows="2" placeholder="Any additional notes or transaction details">{{ order.learner_remarks or '' }}</textarea>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 25px;">
+                    <button type="submit" name="action" value="save_draft" class="btn-outline" style="flex: 1; justify-content: center;">
+                        Save Draft 💾
+                    </button>
+                    <button type="submit" name="action" value="submit" class="btn-secondary" style="flex: 2; justify-content: center;">
+                        Submit Payment for Review ➔
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

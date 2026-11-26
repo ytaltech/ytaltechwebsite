@@ -1,0 +1,560 @@
+{% extends 'elearning/base.html' %}
+
+{% block title %}Final Examination (20 Questions) - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="player-screen-wrapper">
+    <!-- TOP CONTROLS & PALETTE BAR -->
+    <div class="exam-top-strip">
+        <div class="exam-strip-header">
+            <div class="strip-left">
+                <span class="strip-course-title">{{ course.title }} — Final Certified Examination</span>
+                <span class="exam-attempt-tag">Attempt {{ attempt_num }} of 3 &nbsp;|&nbsp; Pass Benchmark: 80% (16 / 20)</span>
+            </div>
+            <div class="strip-right" style="display: flex; align-items: center; gap: 10px;">
+                <span id="answeredCounter" class="timer-badge" style="background:#e0f2fe;color:#0369a1;font-weight:700;">
+                    Answered: 0 / 20
+                </span>
+                <button type="button" class="btn-review-exam-top" onclick="openReviewAllModal()" style="background:#0284c7;color:#fff;border:none;padding:7px 14px;border-radius:20px;font-weight:700;font-size:0.85rem;cursor:pointer;">
+                    Review Responses 📋
+                </button>
+                <button type="button" class="btn-submit-exam-top" onclick="triggerExamSubmit()">
+                    Submit Examination ➔
+                </button>
+            </div>
+        </div>
+
+        <!-- QUICK QUESTION JUMP PALETTE (1 to 20) -->
+        <div class="exam-palette-bar" aria-label="Question Navigation Palette">
+            <span class="palette-label">Jump to Question:</span>
+            <div class="palette-buttons-row">
+                {% for q in questions %}
+                    <button type="button"
+                            class="palette-btn {% if loop.first %}active{% endif %}"
+                            id="pal-btn-{{ loop.index }}"
+                            onclick="goToQuestionSlide({{ loop.index }})"
+                            title="Go to Question {{ loop.index }}">
+                        {{ loop.index }}
+                    </button>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN FORM WRAPPER -->
+    <form action="{{ url_for('tests.take_test', slug=course.slug) }}" method="POST" id="examForm" onsubmit="return confirmExamSubmit();">
+        <!-- Hidden question ID list ensures session loss never drops test questions -->
+        <input type="hidden" name="question_ids_list" value="{{ q_ids_csv }}">
+        <input type="hidden" name="attempt_number" value="{{ attempt_num }}">
+        
+        <!-- ERGONOMIC PRESENTATION STAGE -->
+        <!-- Left Nav Flank | Question Slide Canvas | Right Nav Flank -->
+        <div class="player-flank-layout exam-flank-layout">
+            <!-- LEFT FLANK: PREVIOUS QUESTION -->
+            <div class="player-side-nav-col flank-left-col">
+                <button type="button"
+                        id="btnExamPrev"
+                        class="player-side-nav-btn prev-btn disabled"
+                        onclick="prevQuestionSlide()"
+                        title="Previous Question">
+                    <span class="nav-arrow">❮</span>
+                    <span class="nav-text">Previous<br>Question</span>
+                </button>
+            </div>
+
+            <!-- CENTER: ACTIVE QUESTION SLIDE -->
+            <div class="player-slide-canvas-col">
+                {% for q in questions %}
+                    <div class="exam-question-slide {% if loop.first %}active-slide{% endif %}"
+                         id="exam-slide-{{ loop.index }}"
+                         data-question-num="{{ loop.index }}"
+                         data-qid="{{ q.id }}">
+                        
+                        <div class="presentation-slide-card slide-type-final_assessment">
+                            <!-- HEADER -->
+                            <div class="slide-presentation-header">
+                                <div class="slide-accent-bar"></div>
+                                <div class="slide-breadcrumb">
+                                    YTAL TECH E-LEARNING &nbsp;|&nbsp; {{ course.title|upper }} &nbsp;•&nbsp; FINAL ASSESSMENT
+                                </div>
+                                <h2 class="slide-title-text">
+                                    FINAL ASSESSMENT &nbsp;|&nbsp; Question {{ q.number }} of {{ total_questions }}
+                                </h2>
+                                <div class="slide-title-underline"></div>
+                            </div>
+
+                            <!-- QUESTION CONTENT -->
+                            <div class="slide-content-area">
+                                <div class="presentation-mcq-container">
+                                    <!-- PROMPT CARD -->
+                                    <div class="mcq-prompt-card">
+                                        <div class="mcq-badge-pill badge-final">EXAMINATION QUESTION {{ q.number }} OF {{ total_questions }}</div>
+                                        <div class="mcq-question-prompt">
+                                            {{ q.question_text }}
+                                        </div>
+                                    </div>
+
+                                    <!-- 2x2 CHOICES GRID -->
+                                    <div class="mcq-options-grid">
+                                        {% for opt_key, opt_text in q.options %}
+                                            <label class="mcq-option-card exam-opt-card"
+                                                   data-qid="{{ q.id }}"
+                                                   data-qnum="{{ q.number }}"
+                                                   data-opt="{{ opt_key }}"
+                                                   id="card-{{ q.id }}-{{ opt_key }}">
+                                                <input type="radio"
+                                                       name="q_{{ q.id }}"
+                                                       value="{{ opt_key }}"
+                                                       id="radio-{{ q.id }}-{{ opt_key }}"
+                                                       onchange="onExamRadioSelected('{{ q.id }}', '{{ opt_key }}', {{ q.number }})">
+                                                <span class="opt-badge">{{ opt_key }}</span>
+                                                <span class="opt-text">{{ opt_text }}</span>
+                                            </label>
+                                        {% endfor %}
+                                    </div>
+
+                                    <!-- DUAL RESPONSE INPUT: CLICK OR ENTER LETTER -->
+                                    <div class="mcq-dual-response-bar">
+                                        <div class="dual-input-wrap">
+                                            <label class="dual-label" for="exam_text_resp_{{ q.id }}">
+                                                Enter Response (A / B / C / D) or click choice:
+                                            </label>
+                                            <input type="text"
+                                                   name="q_text_{{ q.id }}"
+                                                   id="exam_text_resp_{{ q.id }}"
+                                                   class="practice-text-input"
+                                                   maxlength="1"
+                                                   placeholder="-"
+                                                   title="Type A, B, C, or D"
+                                                   oninput="onExamTextTyped('{{ q.id }}', {{ q.number }})">
+                                        </div>
+                                        <div class="dual-status-note" id="status-note-{{ q.id }}" style="font-size: 0.88rem; color: #64748b;">
+                                            Question {{ q.number }} of {{ total_questions }}
+                                        </div>
+                                    </div>
+
+                                    {% if loop.last %}
+                                        <!-- ON LAST QUESTION (QUESTION 20): DEDICATED REVIEW OR SUBMIT ACTION BOX -->
+                                        <div class="last-question-prompt-box" style="margin-top: 24px; padding: 20px 22px; background: #f0fdf4; border: 2px solid #86efac; border-radius: 10px; text-align: center;">
+                                            <div style="font-size: 1.1rem; font-weight: 800; color: #166534; margin-bottom: 6px;">
+                                                🏁 Last Question Reached (Question {{ total_questions }} of {{ total_questions }})
+                                            </div>
+                                            <p style="font-size: 0.92rem; color: #15803d; margin: 0 0 16px;">
+                                                Please select how you would like to proceed:
+                                            </p>
+                                            <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+                                                <button type="button" class="btn-review-responses" onclick="openReviewAllModal()" style="background: #0284c7; color: #ffffff; padding: 12px 24px; border-radius: 8px; font-weight: 700; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 0.95rem; box-shadow: 0 2px 6px rgba(2,132,199,0.25);">
+                                                    📖 Go through all responses
+                                                </button>
+                                                <button type="button" class="btn-submit-responses" onclick="triggerExamSubmit()" style="background: #16a34a; color: #ffffff; padding: 12px 26px; border-radius: 8px; font-weight: 700; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 0.95rem; box-shadow: 0 2px 6px rgba(22,163,74,0.25);">
+                                                    ✅ Submit the responses
+                                                </button>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- FOOTER -->
+                            <div class="slide-presentation-footer">
+                                <div class="footer-left">
+                                    Ytal Tech E-Learning Platform • <a href="https://www.ytaltech.com" target="_blank">www.ytaltech.com</a>
+                                </div>
+                                <div class="footer-right">
+                                    Question {{ q.number }} of {{ total_questions }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- RIGHT FLANK: NEXT QUESTION / REVIEW -->
+            <div class="player-side-nav-col flank-right-col">
+                <button type="button"
+                        id="btnExamNext"
+                        class="player-side-nav-btn next-btn btn-next-active"
+                        onclick="nextQuestionSlide()"
+                        title="Next Question">
+                    <span class="nav-arrow">❯</span>
+                    <span class="nav-text">Next<br>Question</span>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- REVIEW ALL RESPONSES MODAL / DRAWER -->
+<div id="reviewAllModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 25, 47, 0.75); z-index: 99999; overflow-y: auto; padding: 20px 10px; backdrop-filter: blur(2px);">
+    <div style="max-width: 820px; margin: 25px auto; background: #ffffff; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); overflow: hidden; border: 1px solid #e2e8f0;">
+        <!-- MODAL HEADER -->
+        <div style="background: #0f172a; color: #ffffff; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #38bdf8;">
+                    📋 Review All Examination Responses
+                </h3>
+                <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 4px;">
+                    {{ course.title }} • Final Examination ({{ total_questions }} Questions)
+                </div>
+            </div>
+            <button type="button" onclick="closeReviewAllModal()" style="background: transparent; border: none; color: #94a3b8; font-size: 1.8rem; cursor: pointer; line-height: 1;">
+                &times;
+            </button>
+        </div>
+
+        <!-- MODAL BODY -->
+        <div style="padding: 22px; max-height: 60vh; overflow-y: auto;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <div style="font-size: 0.95rem; color: #334155;">
+                    <span id="modalAnsweredStatus" style="font-weight: 700; color: #0284c7;">Status: Calculating...</span>
+                </div>
+                <div style="font-size: 0.85rem; color: #64748b;">
+                    Click <strong>Change ✎</strong> on any question to modify your response.
+                </div>
+            </div>
+
+            <!-- QUESTIONS SUMMARY TABLE -->
+            <div class="review-table-container">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                    <thead>
+                        <tr style="background: #f1f5f9; text-align: left; color: #475569; font-weight: 700; border-bottom: 2px solid #cbd5e1;">
+                            <th style="padding: 10px 12px; width: 55px;">Q#</th>
+                            <th style="padding: 10px 12px;">Question</th>
+                            <th style="padding: 10px 12px; width: 140px; text-align: center;">Selected Response</th>
+                            <th style="padding: 10px 12px; width: 90px; text-align: right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for q in questions %}
+                            <tr style="border-bottom: 1px solid #e2e8f0;" id="review-row-{{ q.number }}">
+                                <td style="padding: 10px 12px; font-weight: 700; color: #0284c7;">
+                                    #{{ q.number }}
+                                </td>
+                                <td style="padding: 10px 12px; color: #1e293b;">
+                                    <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 420px; font-weight: 600;">
+                                        {{ q.question_text }}
+                                    </div>
+                                </td>
+                                <td style="padding: 10px 12px; text-align: center;" id="review-choice-{{ q.number }}">
+                                    <span style="background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 10px; font-size: 0.78rem; font-weight: 700;">
+                                        Not Answered
+                                    </span>
+                                </td>
+                                <td style="padding: 10px 12px; text-align: right;">
+                                    <button type="button" onclick="editQuestionFromReview({{ q.number }})" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 4px; padding: 4px 10px; font-size: 0.8rem; font-weight: 600; color: #0284c7; cursor: pointer;">
+                                        Change ✎
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- MODAL FOOTER -->
+        <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; gap: 8px;">
+                <button type="button" onclick="closeReviewAllModal()" class="btn-outline" style="padding: 9px 18px; font-size: 0.88rem;">
+                    ← Back to Question Slide
+                </button>
+                <button type="button" onclick="startSequentialReview()" class="btn-secondary" style="background:#0284c7;border-color:#0284c7;color:#fff;padding: 9px 18px; font-size: 0.88rem;">
+                    Review from Question 1 ➔
+                </button>
+            </div>
+            <button type="button" onclick="triggerExamSubmit()" class="btn-primary" style="background: #16a34a; border-color: #16a34a; padding: 9px 24px; font-size: 0.92rem; font-weight: 700; box-shadow: 0 2px 6px rgba(22,163,74,0.3);">
+                ✅ Submit Examination Responses ➔
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentQuestionNum = 1;
+const totalQuestions = {{ total_questions }};
+
+function getQuestionAnswer(qNum) {
+    const slide = document.getElementById('exam-slide-' + qNum);
+    if (!slide) return null;
+    const qId = slide.dataset.qid;
+    const checked = document.querySelector('input[name="q_' + qId + '"]:checked');
+    if (checked && checked.value) {
+        return checked.value;
+    }
+    const txtInput = document.getElementById('exam_text_resp_' + qId);
+    if (txtInput && ['A', 'B', 'C', 'D'].includes((txtInput.value || '').trim().toUpperCase())) {
+        return txtInput.value.trim().toUpperCase();
+    }
+    return null;
+}
+
+function isQuestionAnswered(qNum) {
+    return (getQuestionAnswer(qNum) !== null);
+}
+
+function updateNextButtonState() {
+    const nextBtn = document.getElementById('btnExamNext');
+    if (!nextBtn) return;
+    const answered = isQuestionAnswered(currentQuestionNum);
+    if (answered) {
+        nextBtn.classList.remove('disabled');
+        nextBtn.removeAttribute('disabled');
+        nextBtn.style.opacity = '1';
+        nextBtn.style.cursor = 'pointer';
+    } else {
+        nextBtn.classList.add('disabled');
+        nextBtn.setAttribute('disabled', 'disabled');
+        nextBtn.style.opacity = '0.5';
+        nextBtn.style.cursor = 'not-allowed';
+    }
+}
+
+function showQuestionSlide(num) {
+    if (num < 1 || num > totalQuestions) return;
+    currentQuestionNum = num;
+
+    // Toggle slide visibility
+    document.querySelectorAll('.exam-question-slide').forEach(slide => {
+        slide.classList.remove('active-slide');
+    });
+    const activeSlide = document.getElementById('exam-slide-' + num);
+    if (activeSlide) {
+        activeSlide.classList.add('active-slide');
+    }
+
+    // Update palette active states
+    document.querySelectorAll('.palette-btn').forEach(btn => btn.classList.remove('active'));
+    const palBtn = document.getElementById('pal-btn-' + num);
+    if (palBtn) {
+        palBtn.classList.add('active');
+        palBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+
+    // Update Previous Flank Button: Always enabled whenever currentQuestionNum > 1
+    const prevBtn = document.getElementById('btnExamPrev');
+    if (prevBtn) {
+        if (num === 1) {
+            prevBtn.classList.add('disabled');
+            prevBtn.setAttribute('disabled', 'disabled');
+        } else {
+            prevBtn.classList.remove('disabled');
+            prevBtn.removeAttribute('disabled');
+        }
+    }
+
+    // Update Next Flank Button
+    const nextBtn = document.getElementById('btnExamNext');
+    if (nextBtn) {
+        const navText = nextBtn.querySelector('.nav-text');
+        if (num === totalQuestions) {
+            if (navText) navText.innerHTML = 'Review &<br>Submit ➔';
+            nextBtn.classList.add('btn-next-submit');
+        } else {
+            if (navText) navText.innerHTML = 'Next<br>Question';
+            nextBtn.classList.remove('btn-next-submit');
+        }
+    }
+
+    updateNextButtonState();
+}
+
+function prevQuestionSlide() {
+    if (currentQuestionNum > 1) {
+        showQuestionSlide(currentQuestionNum - 1);
+    }
+}
+
+function nextQuestionSlide() {
+    if (!isQuestionAnswered(currentQuestionNum)) {
+        alert(`Please answer Question ${currentQuestionNum} before proceeding to the next question.`);
+        return;
+    }
+    if (currentQuestionNum < totalQuestions) {
+        showQuestionSlide(currentQuestionNum + 1);
+    } else {
+        // On Question 20: open the review choices modal
+        openReviewAllModal();
+    }
+}
+
+// Free navigation: Learner can jump to ANY question to review or change responses
+function goToQuestionSlide(num) {
+    showQuestionSlide(num);
+}
+
+function onExamRadioSelected(qId, optVal, qNum) {
+    // Sync text input
+    const txtInput = document.getElementById('exam_text_resp_' + qId);
+    if (txtInput) {
+        txtInput.value = optVal;
+    }
+    // Highlight chosen card
+    highlightSelectedCard(qId, optVal);
+    // Mark palette button as answered
+    markQuestionAnswered(qNum, true);
+    updateTotalAnsweredCounter();
+    updateNextButtonState();
+}
+
+function onExamTextTyped(qId, qNum) {
+    const txtInput = document.getElementById('exam_text_resp_' + qId);
+    if (!txtInput) return;
+    const val = (txtInput.value || '').trim().toUpperCase();
+    txtInput.value = val;
+
+    if (['A', 'B', 'C', 'D'].includes(val)) {
+        const radio = document.getElementById('radio-' + qId + '-' + val);
+        if (radio) {
+            radio.checked = true;
+            highlightSelectedCard(qId, val);
+            markQuestionAnswered(qNum, true);
+        }
+    } else if (val === '') {
+        // Deselect
+        const checked = document.querySelector('input[name="q_' + qId + '"]:checked');
+        if (checked) checked.checked = false;
+        highlightSelectedCard(qId, null);
+        markQuestionAnswered(qNum, false);
+    }
+    updateTotalAnsweredCounter();
+    updateNextButtonState();
+}
+
+function highlightSelectedCard(qId, optVal) {
+    ['A', 'B', 'C', 'D'].forEach(opt => {
+        const card = document.getElementById('card-' + qId + '-' + opt);
+        if (card) {
+            if (opt === optVal) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+        }
+    });
+}
+
+function markQuestionAnswered(qNum, isAnswered) {
+    const palBtn = document.getElementById('pal-btn-' + qNum);
+    if (palBtn) {
+        if (isAnswered) {
+            palBtn.classList.add('answered');
+        } else {
+            palBtn.classList.remove('answered');
+        }
+    }
+}
+
+function updateTotalAnsweredCounter() {
+    let count = 0;
+    for (let i = 1; i <= totalQuestions; i++) {
+        if (isQuestionAnswered(i)) count++;
+    }
+    const counter = document.getElementById('answeredCounter');
+    if (counter) {
+        counter.textContent = `Answered: ${count} / ${totalQuestions}`;
+        if (count === totalQuestions) {
+            counter.style.background = '#dcfce7';
+            counter.style.color = '#166534';
+        } else {
+            counter.style.background = '#e0f2fe';
+            counter.style.color = '#0369a1';
+        }
+    }
+}
+
+// -------------------------------------------------------------
+// REVIEW ALL RESPONSES MODAL FUNCTIONS (Requirement 5a & 5b)
+// -------------------------------------------------------------
+function openReviewAllModal() {
+    let answeredCount = 0;
+    for (let i = 1; i <= totalQuestions; i++) {
+        const choice = getQuestionAnswer(i);
+        const cell = document.getElementById('review-choice-' + i);
+        if (choice) {
+            answeredCount++;
+            if (cell) {
+                cell.innerHTML = `<span style="background:#dcfce7;color:#166534;padding:4px 12px;border-radius:12px;font-weight:800;font-size:0.88rem;">Option ${choice}</span>`;
+            }
+        } else {
+            if (cell) {
+                cell.innerHTML = `<span style="background:#fee2e2;color:#991b1b;padding:4px 12px;border-radius:12px;font-weight:700;font-size:0.82rem;">Not Answered</span>`;
+            }
+        }
+    }
+    const statusEl = document.getElementById('modalAnsweredStatus');
+    if (statusEl) {
+        statusEl.innerHTML = `Total Progress: <strong>${answeredCount} / ${totalQuestions} Questions Answered</strong>`;
+        statusEl.style.color = (answeredCount === totalQuestions) ? '#166534' : '#0284c7';
+    }
+    const modal = document.getElementById('reviewAllModal');
+    if (modal) modal.style.display = 'block';
+}
+
+function closeReviewAllModal() {
+    const modal = document.getElementById('reviewAllModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function editQuestionFromReview(qNum) {
+    closeReviewAllModal();
+    showQuestionSlide(qNum);
+}
+
+function startSequentialReview() {
+    closeReviewAllModal();
+    showQuestionSlide(1);
+}
+
+// -------------------------------------------------------------
+// EXAM SUBMISSION (Requirement 5b)
+// -------------------------------------------------------------
+function triggerExamSubmit() {
+    // 1. Verify all questions are answered
+    for (let i = 1; i <= totalQuestions; i++) {
+        if (!isQuestionAnswered(i)) {
+            alert(`Please answer Question ${i} before submitting your examination.`);
+            closeReviewAllModal();
+            showQuestionSlide(i);
+            return;
+        }
+    }
+    // 2. User confirmation
+    if (confirm('Are you sure you want to finalize and submit all 20 examination responses for evaluation? Once submitted, answers cannot be modified.')) {
+        document.getElementById('examForm').submit();
+    }
+}
+
+function confirmExamSubmit() {
+    for (let i = 1; i <= totalQuestions; i++) {
+        if (!isQuestionAnswered(i)) {
+            alert(`Please answer Question ${i} before submitting your examination.`);
+            closeReviewAllModal();
+            showQuestionSlide(i);
+            return false;
+        }
+    }
+    return confirm('Are you sure you want to finalize and submit your examination?');
+}
+
+// Keyboard navigation during examination
+document.addEventListener('keydown', function(e) {
+    if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            nextQuestionSlide();
+        }
+        return;
+    }
+    if (e.key === 'ArrowLeft') {
+        prevQuestionSlide();
+    } else if (e.key === 'ArrowRight') {
+        nextQuestionSlide();
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    showQuestionSlide(1);
+    updateTotalAnsweredCounter();
+});
+</script>
+{% endblock %}

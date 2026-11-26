@@ -1,0 +1,56 @@
+{% extends 'elearning/admin/base_admin.html' %}
+
+{% block admin_content %}
+<div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <div>
+            <h1 style="color: var(--dark-navy); font-size: 1.8rem;">Course Content Management</h1>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Manage courses, slide decks, PowerPoint imports, and pricing.</p>
+        </div>
+    </div>
+
+    <div style="background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow-x: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Course Title</th>
+                    <th>Slug</th>
+                    <th>Duration</th>
+                    <th>Slides</th>
+                    <th>Fee (INR)</th>
+                    <th>Fee (USD)</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in courses %}
+                    <tr>
+                        <td><strong>{{ c.title }}</strong></td>
+                        <td><code>{{ c.slug }}</code></td>
+                        <td>{{ c.estimated_duration }}</td>
+                        <td><span class="meta-tag">{{ c.slides|length }} Slides</span></td>
+                        <td>₹{{ "%.2f"|format(c.total_price_inr) }}</td>
+                        <td>${{ "%.2f"|format(c.price_usd) }}</td>
+                        <td>
+                            <span class="status-badge {{ 'status-verified_approved' if c.is_active else 'status-rejected' }}">
+                                {{ 'Active' if c.is_active else 'Inactive' }}
+                            </span>
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 6px;">
+                                <a href="{{ url_for('admin.course_slides', course_id=c.id) }}" class="btn-primary" style="padding: 4px 10px; font-size: 0.8rem;">
+                                    Manage Slides ➔
+                                </a>
+                                <a href="{{ url_for('admin.edit_course', course_id=c.id) }}" class="btn-outline" style="padding: 4px 10px; font-size: 0.8rem;">
+                                    Edit
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

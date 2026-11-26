@@ -1,0 +1,126 @@
+{% extends 'elearning/base.html' %}
+
+{% block title %}Certificate - {{ certificate.certificate_id }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 900px;">
+    <!-- ACTIONS BAR -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <a href="{{ url_for('elearning.courses_list') }}" style="color:var(--primary);text-decoration:none;font-weight:600;">
+                ← Back to Courses
+            </a>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <a href="{{ url_for('certificates.download_certificate_pdf', cert_id=certificate.certificate_id) }}" class="btn-secondary">
+                Download Official PDF 📥
+            </a>
+            <a href="{{ url_for('certificates.verify_certificate', cert=certificate.certificate_id) }}" target="_blank" class="btn-outline">
+                Public Verification Link ↗
+            </a>
+        </div>
+    </div>
+
+    <!-- CERTIFICATE PREVIEW CANVAS -->
+    <div style="background: #ffffff; border: 8px double var(--primary); outline: 2px solid var(--secondary); outline-offset: 4px; border-radius: var(--radius-md); padding: 50px 40px; box-shadow: var(--shadow-lg); text-align: center; position: relative; margin-bottom: 30px;">
+        
+        <!-- LOGO -->
+        <div style="margin-bottom: 15px;">
+            <img src="{{ url_for('static', filename='Ytal Tech logo.jpg') }}" alt="Ytal Tech Logo" style="height: 60px;">
+        </div>
+
+        <div style="color: var(--primary); font-size: 0.95rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;">
+            Ytal Tech Solutions & Services LLP
+        </div>
+
+        <h1 style="color: var(--dark-navy); font-size: 2.4rem; font-weight: 800; margin: 15px 0 10px; letter-spacing: 1px;">
+            CERTIFICATE OF COMPLETION
+        </h1>
+
+        <p style="color: #64748b; font-size: 1.05rem; margin-bottom: 15px;">
+            This is to certify that
+        </p>
+
+        <!-- LEARNER NAME -->
+        <div style="font-size: 2.2rem; font-weight: 800; color: var(--secondary); margin-bottom: 6px; border-bottom: 2px solid #f1f5f9; display: inline-block; padding: 0 40px 6px;">
+            {{ certificate.user.full_name }}
+        </div>
+        <div style="font-size: 0.95rem; color: #0284c7; font-weight: 600; margin-bottom: 15px;">
+            Registered Email: <code>{{ certificate.user.email }}</code>
+        </div>
+
+        <p style="color: #64748b; font-size: 1.05rem; margin-bottom: 15px;">
+            has successfully completed the professional training program and final examination in
+        </p>
+
+        <!-- COURSE TITLE -->
+        <h2 style="color: var(--dark-navy); font-size: 1.7rem; font-weight: 700; margin-bottom: 20px;">
+            {{ certificate.course.title }}
+        </h2>
+
+        <div style="font-size: 0.95rem; color: #475569; margin-bottom: 35px;">
+            Examination Score: <strong>{{ certificate.score_percentage }}% (PASSED)</strong> &nbsp;|&nbsp; Course Version: <strong>{{ certificate.course_version }}</strong>
+        </div>
+
+        <!-- FOOTER: CERT INFO, QR CODE, SIGNATURES -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; align-items: center; border-top: 1px solid var(--border-color); padding-top: 25px;">
+            <!-- Left: Metadata -->
+            <div style="text-align: left; font-size: 0.85rem; color: #475569; line-height: 1.6;">
+                <div><strong>Certificate ID:</strong><br/><code>{{ certificate.certificate_id }}</code></div>
+                <div style="margin-top: 6px;"><strong>Issue Date:</strong><br/>{{ certificate.issue_date.strftime('%d %B %Y') }}</div>
+                <div style="margin-top: 6px;"><strong>Candidate Email:</strong><br/><code>{{ certificate.user.email }}</code></div>
+                <div style="margin-top: 6px;"><strong>Status:</strong> <span style="color:#166534;font-weight:700;">VALID / ACTIVE</span></div>
+            </div>
+
+            <!-- Middle: QR Code -->
+            <div>
+                {% if certificate.qr_code_path %}
+                    <img src="{{ url_for('static', filename=certificate.qr_code_path) }}" alt="Certificate QR Code" style="width: 110px; height: 110px; border: 1px solid #cbd5e1; padding: 3px; background: #fff;">
+                    <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">Scan to verify registry</div>
+                {% endif %}
+            </div>
+
+            <!-- Right: Signatures -->
+            <div style="text-align: right; font-size: 0.85rem; color: #334155; line-height: 1.5;">
+                <div style="font-weight: 700; color: var(--dark-navy);">Dr. Ganesh Divekar</div>
+                <div style="font-size: 0.75rem; color: #64748b;">Course Director</div>
+                <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">Ytal Tech Solutions & Services LLP</div>
+
+                <div style="font-weight: 700; color: var(--dark-navy);">Ajay Kondekar</div>
+                <div style="font-size: 0.75rem; color: #64748b;">Compliance Director</div>
+                <div style="font-size: 0.75rem; color: #64748b;">Ytal Tech Solutions & Services LLP</div>
+            </div>
+        </div>
+
+        <!-- SECURITY HASH -->
+        <div style="margin-top: 25px; padding-top: 15px; border-top: 1px dashed var(--border-color); font-size: 0.75rem; color: #64748b; font-family: monospace; word-break: break-all;">
+            Cryptographic SHA-256 Tamper-Proof Digital Hash: <strong>{{ certificate.digital_signature_hash }}</strong>
+        </div>
+    </div>
+
+    <!-- PHYSICAL DISPATCH STATUS CARD -->
+    <div style="background: var(--surface); padding: 25px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);">
+        <h3 style="color: var(--dark-navy); margin-bottom: 12px; font-size: 1.15rem;">Physical Certificate Dispatch & Courier Tracking</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; font-size: 0.95rem;">
+            <div>
+                <span style="color: var(--text-muted); font-size: 0.85rem; display: block;">Fulfillment Status:</span>
+                <span class="status-badge status-{{ certificate.dispatch_status }}">
+                    {{ certificate.dispatch_status.replace('_', ' ').title() }}
+                </span>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); font-size: 0.85rem; display: block;">Courier Partner:</span>
+                <strong>{{ certificate.courier_name or 'Under Preparation' }}</strong>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); font-size: 0.85rem; display: block;">Tracking Reference:</span>
+                <code>{{ certificate.tracking_number or 'Assigned upon pickup' }}</code>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); font-size: 0.85rem; display: block;">Shipping Destination:</span>
+                <span>{{ certificate.user.city }}, {{ certificate.user.state }} ({{ certificate.user.pincode }})</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,163 @@
+{% extends 'elearning/base.html' %}
+
+{% block title %}Verify Certificate Authenticity{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px;">
+    <!-- SEARCH / VERIFY BOX -->
+    <div style="background: var(--surface); padding: 35px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border-top: 5px solid var(--primary); margin-bottom: 30px;">
+        <h1 style="color: var(--dark-navy); font-size: 1.8rem; margin-bottom: 8px;">
+            Official Certificate Verification Registry
+        </h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px;">
+            Ytal Tech Solutions & Services LLP maintains a tamper-proof registry of all accredited course completions. 
+            Enter a Certificate Serial ID below or scan the physical/digital QR code.
+        </p>
+
+        <form action="{{ url_for('certificates.verify_certificate') }}" method="GET" style="display: flex; gap: 12px; margin-bottom: 10px;">
+            <input type="text" name="cert" class="form-control" placeholder="e.g. YTAL-GDP-2026-AB12CD" value="{{ cert_id }}" required style="font-family: monospace; font-size: 1.1rem; text-transform: uppercase;">
+            <button type="submit" class="btn-primary" style="padding: 10px 24px;">
+                Verify 🔍
+            </button>
+        </form>
+    </div>
+
+    {% if cert_id %}
+        {% if is_valid and certificate %}
+            <!-- VALID CERTIFICATE -->
+            <div style="background: #ffffff; border: 2px solid #22c55e; border-radius: var(--radius-lg); padding: 35px; box-shadow: var(--shadow-md); margin-bottom: 30px;">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                    <div style="width: 50px; height: 50px; background: #dcfce7; color: #166534; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem;">
+                        ✓
+                    </div>
+                    <div>
+                        <h2 style="color: #166534; font-size: 1.5rem; margin-bottom: 2px;">
+                            Verified Authentic Certificate
+                        </h2>
+                        <span style="font-size: 0.85rem; color: #15803d; font-weight: 600;">
+                            Official Record Confirmed by Ytal Tech Registry
+                        </span>
+                    </div>
+                </div>
+
+                <table class="styled-table" style="margin-top: 15px; font-size: 1rem;">
+                    <tbody>
+                        <tr>
+                            <td style="width: 35%; color: var(--text-muted); font-weight: 600;">Certificate ID:</td>
+                            <td><code>{{ certificate.certificate_id }}</code></td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--text-muted); font-weight: 600;">Learner Full Name:</td>
+                            <td><strong>{{ certificate.user.full_name }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--text-muted); font-weight: 600;">Registered Email:</td>
+                            <td><code>{{ certificate.user.email }}</code></td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--text-muted); font-weight: 600;">Course Title:</td>
+                            <td><strong>{{ certificate.course.title }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--text-muted); font-weight: 600;">Issue Date:</td>
+                            <td>{{ certificate.issue_date.strftime('%d %B %Y') }}</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--text-muted); font-weight: 600;">Status:</td>
+                            <td><span style="background:#dcfce7;color:#166534;padding:3px 10px;border-radius:12px;font-weight:bold;font-size:0.85rem;">VALID</span></td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--text-muted); font-weight: 600;">Issuing Organisation:</td>
+                            <td>Ytal Tech Solutions & Services LLP (Thane, India)</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--text-muted); font-weight: 600;">Examination Result:</td>
+                            <td><strong>Successfully Completed & Passed</strong> ({{ certificate.score_percentage }}%)</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--text-muted); font-weight: 600;">Digital Verification Hash:</td>
+                            <td><code style="font-size: 0.8rem; word-break: break-all;">{{ certificate.digital_signature_hash }}</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        {% else %}
+            <!-- INVALID / TAMPERED / NOT FOUND -->
+            <div style="background: #ffffff; border: 2px solid #ef4444; border-radius: var(--radius-lg); padding: 35px; box-shadow: var(--shadow-md); margin-bottom: 30px;">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                    <div style="width: 50px; height: 50px; background: #fee2e2; color: #991b1b; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem;">
+                        ✗
+                    </div>
+                    <div>
+                        <h2 style="color: #991b1b; font-size: 1.5rem; margin-bottom: 2px;">
+                            This certificate could not be verified.
+                        </h2>
+                        <span style="font-size: 0.85rem; color: #b91c1c;">
+                            {% if certificate and certificate.status == 'revoked' %}
+                                This certificate was formally REVOKED. Reason: {{ certificate.revocation_reason }}
+                            {% else %}
+                                No active official registry record matches Certificate ID: <strong>{{ cert_id }}</strong>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-top: 15px;">
+                    The certificate identifier may be mistyped, altered, counterfeit, or issued outside official Ytal Tech protocols. 
+                    If you believe this record is genuine or suspect fraudulent reproduction, please submit an inquiry below.
+                </p>
+
+                <!-- COMPLAINT / REPORT FORM -->
+                <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                    <h3 style="color: var(--dark-navy); font-size: 1.2rem; margin-bottom: 15px;">
+                        Report a Verification Discrepancy or Complaint
+                    </h3>
+
+                    <form action="{{ url_for('certificates.submit_certificate_complaint') }}" method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="certificate_id" value="{{ cert_id }}">
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label>Your Name *</label>
+                                <input type="text" name="reporter_name" class="form-control" required placeholder="Full Name">
+                            </div>
+                            <div class="form-group">
+                                <label>Your Email Address *</label>
+                                <input type="email" name="reporter_email" class="form-control" required placeholder="name@example.com">
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label>Phone Number (Optional)</label>
+                                <input type="tel" name="reporter_phone" class="form-control" placeholder="+91 ...">
+                            </div>
+                            <div class="form-group">
+                                <label>Attach Document / Image Proof (Optional)</label>
+                                <input type="file" name="attachment" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Description of Issue *</label>
+                            <textarea name="issue_description" class="form-control" rows="3" placeholder="Please describe where you obtained this certificate or the discrepancy observed." required></textarea>
+                        </div>
+
+                        <div style="margin: 15px 0;">
+                            <label style="display: flex; gap: 8px; align-items: center; font-size: 0.85rem; color: #475569;">
+                                <input type="checkbox" name="consent_given" value="1" checked required>
+                                <span>I give consent to Ytal Tech Solutions compliance officers to review this report and contact me.</span>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn-secondary">
+                            Submit Verification Inquiry ➔
+                        </button>
+                    </form>
+                </div>
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

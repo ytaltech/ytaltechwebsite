@@ -1,0 +1,86 @@
+{% extends 'elearning/admin/base_admin.html' %}
+
+{% block admin_content %}
+<div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <a href="{{ url_for('admin.courses_cms') }}" style="color:var(--primary);text-decoration:none;font-size:0.9rem;font-weight:600;">← Back to Courses</a>
+            <h1 style="color: var(--dark-navy); font-size: 1.8rem; margin-top: 6px;">Slides: {{ course.title }}</h1>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <a href="{{ url_for('admin.add_slide', course_id=course.id) }}" class="btn-primary">
+                + Add Single Slide
+            </a>
+        </div>
+    </div>
+
+    <!-- PPT / PPTX IMPORT BOX -->
+    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-lg); padding: 25px; margin-bottom: 30px;">
+        <h3 style="color: #166534; font-size: 1.2rem; margin-bottom: 8px;">📊 Import Slides from PowerPoint (.pptx)</h3>
+        <p style="color: #15803d; font-size: 0.9rem; margin-bottom: 15px;">
+            Upload your course presentation file. The system will securely parse slide titles and text contents into web-friendly, responsive slides without exposing the raw file URL to learners.
+        </p>
+
+        <form action="{{ url_for('admin.upload_course_pptx', course_id=course.id) }}" method="POST" enctype="multipart/form-data" style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+            <input type="file" name="pptx_file" accept=".pptx,.ppt" required class="form-control" style="max-width: 320px; background: #fff;">
+            
+            <select name="mode" class="form-control" style="max-width: 160px; background: #fff;">
+                <option value="append">Append Slides</option>
+                <option value="replace">Replace All</option>
+            </select>
+
+            <button type="submit" class="btn-secondary" style="padding: 10px 20px;">
+                Upload & Parse PPTX 🚀
+            </button>
+        </form>
+    </div>
+
+    <!-- SLIDES LIST -->
+    <div style="background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow-x: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 80px;">Slide #</th>
+                    <th>Slide Title</th>
+                    <th>Required Dwell</th>
+                    <th>Practice MCQ</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in slides %}
+                    <tr>
+                        <td><strong>#{{ s.slide_number }}</strong></td>
+                        <td><strong>{{ s.title }}</strong></td>
+                        <td>{{ s.minimum_dwell_seconds }} seconds</td>
+                        <td>
+                            {% if s.has_practice_mcq %}
+                                <span class="meta-tag" style="background:#e0f2fe;color:#0369a1;">Yes (MCQ Attached)</span>
+                            {% else %}
+                                <span style="color:#94a3b8;font-size:0.85rem;">None</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="status-badge {{ 'status-verified_approved' if s.is_active else 'status-rejected' }}">
+                                {{ 'Active' if s.is_active else 'Inactive' }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('admin.edit_slide', slide_id=s.id) }}" class="btn-outline" style="padding: 4px 10px; font-size: 0.8rem;">
+                                Edit Content ➔
+                            </a>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                            No slides configured yet for this course.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

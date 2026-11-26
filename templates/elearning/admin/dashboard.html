@@ -1,0 +1,114 @@
+{% extends 'elearning/admin/base_admin.html' %}
+
+{% block admin_content %}
+<div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <h1 style="color: var(--dark-navy); font-size: 1.8rem;">Executive Analytics & Operations</h1>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">
+            Updated: {{ now().strftime('%d %B %Y') if now is defined else '' }}
+        </span>
+    </div>
+
+    <!-- STATS CARDS -->
+    <div class="admin-stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total Learners</div>
+            <div class="stat-value">{{ total_users }}</div>
+        </div>
+        <div class="stat-card" style="border-left-color: var(--secondary);">
+            <div class="stat-label">Course Enrolments</div>
+            <div class="stat-value">{{ total_enrolments }}</div>
+        </div>
+        <div class="stat-card" style="border-left-color: var(--warning);">
+            <div class="stat-label">Payments Under Review</div>
+            <div class="stat-value" style="color: #b45309;">{{ pending_payments }}</div>
+        </div>
+        <div class="stat-card" style="border-left-color: var(--accent-green);">
+            <div class="stat-label">Revenue Collected (INR)</div>
+            <div class="stat-value" style="color: #15803d;">₹{{ "%.2f"|format(total_revenue_inr) }}</div>
+        </div>
+        <div class="stat-card" style="border-left-color: #0284c7;">
+            <div class="stat-label">Certificates Issued</div>
+            <div class="stat-value">{{ total_certificates }}</div>
+        </div>
+        <div class="stat-card" style="border-left-color: #8b5cf6;">
+            <div class="stat-label">Pending Physical Dispatch</div>
+            <div class="stat-value">{{ pending_dispatch }}</div>
+        </div>
+    </div>
+
+    <!-- RECENT PAYMENTS AWAITING ACTION -->
+    <div style="background: var(--surface); padding: 25px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 30px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="color: var(--dark-navy);">Recent Payment Submissions</h3>
+            <a href="{{ url_for('admin.payments_list') }}" style="color:var(--primary);font-size:0.9rem;font-weight:600;">View All Payments ➔</a>
+        </div>
+
+        {% if recent_payments %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Order Ref</th>
+                        <th>Learner</th>
+                        <th>Course</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Submitted</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in recent_payments %}
+                        <tr>
+                            <td><code>{{ p.order_reference }}</code></td>
+                            <td>{{ p.user.full_name }}</td>
+                            <td>{{ p.course.title[:25] }}...</td>
+                            <td><strong>{{ "%.2f"|format(p.expected_amount) }} {{ p.currency }}</strong></td>
+                            <td><span class="status-badge status-{{ p.status }}">{{ p.status.replace('_', ' ') }}</span></td>
+                            <td>{{ p.submitted_at.strftime('%d-%b %H:%M') if p.submitted_at else 'Draft' }}</td>
+                            <td>
+                                <a href="{{ url_for('admin.payment_detail', order_id=p.id) }}" class="btn-primary" style="padding:4px 10px;font-size:0.8rem;">
+                                    Verify ➔
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p style="color: var(--text-muted); font-size: 0.95rem;">No payment submissions currently recorded.</p>
+        {% endif %}
+    </div>
+
+    <!-- RECENT AUDIT LOGS -->
+    <div style="background: var(--surface); padding: 25px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="color: var(--dark-navy);">Security & Audit Trail</h3>
+            <a href="{{ url_for('admin.audit_logs') }}" style="color:var(--primary);font-size:0.9rem;font-weight:600;">View Full Audit Trail ➔</a>
+        </div>
+
+        <table class="data-table" style="font-size: 0.85rem;">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Action</th>
+                    <th>User</th>
+                    <th>Entity</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in recent_audit_logs %}
+                    <tr>
+                        <td>{{ log.created_at.strftime('%d-%b-%Y %H:%M:%S') }}</td>
+                        <td><code>{{ log.action }}</code></td>
+                        <td>{{ log.user.full_name if log.user else 'System' }}</td>
+                        <td>{{ log.entity_type }} #{{ log.entity_id }}</td>
+                        <td>{{ log.details }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

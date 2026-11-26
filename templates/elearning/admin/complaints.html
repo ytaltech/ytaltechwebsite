@@ -1,0 +1,74 @@
+{% extends 'elearning/admin/base_admin.html' %}
+
+{% block admin_content %}
+<div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <div>
+            <h1 style="color: var(--dark-navy); font-size: 1.8rem;">Certificate Inquiries & Complaints</h1>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Review reports submitted via the public QR verification page.</p>
+        </div>
+    </div>
+
+    <div style="background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow-x: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 50px;">ID</th>
+                    <th>Reported Cert ID</th>
+                    <th>Reporter</th>
+                    <th>Issue Description</th>
+                    <th>Attachment</th>
+                    <th>Status</th>
+                    <th>Update Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in complaints %}
+                    <tr>
+                        <td>#{{ c.id }}</td>
+                        <td><code>{{ c.certificate_id_reported or 'None' }}</code></td>
+                        <td>
+                            <strong>{{ c.reporter_name }}</strong>
+                            <div style="font-size:0.75rem;color:var(--text-muted);">{{ c.reporter_email }}</div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);">{{ c.reporter_phone or '' }}</div>
+                        </td>
+                        <td><div style="max-width: 250px; font-size: 0.85rem;">{{ c.issue_description }}</div></td>
+                        <td>
+                            {% if c.attachment_path %}
+                                <a href="{{ url_for('static', filename=c.attachment_path) }}" target="_blank" style="color:var(--primary);font-size:0.8rem;font-weight:600;">View File ↗</a>
+                            {% else %}
+                                <span style="color:#94a3b8;font-size:0.8rem;">None</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ c.status }}">
+                                {{ c.status.replace('_', ' ') }}
+                            </span>
+                        </td>
+                        <td>
+                            <form action="{{ url_for('admin.update_complaint', complaint_id=c.id) }}" method="POST" style="display: flex; flex-direction: column; gap: 4px;">
+                                <select name="status" class="form-control" style="padding: 2px 6px; font-size: 0.8rem;">
+                                    <option value="open" {% if c.status == 'open' %}selected{% endif %}>Open</option>
+                                    <option value="under_investigation" {% if c.status == 'under_investigation' %}selected{% endif %}>Investigating</option>
+                                    <option value="resolved" {% if c.status == 'resolved' %}selected{% endif %}>Resolved</option>
+                                    <option value="closed" {% if c.status == 'closed' %}selected{% endif %}>Closed</option>
+                                </select>
+                                <input type="text" name="admin_notes" class="form-control" placeholder="Admin notes" value="{{ c.admin_notes or '' }}" style="padding: 2px 6px; font-size: 0.75rem;">
+                                <button type="submit" class="btn-primary" style="padding: 2px 6px; font-size: 0.75rem; justify-content: center;">
+                                    Save
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                            No certificate reports or complaints currently on file.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

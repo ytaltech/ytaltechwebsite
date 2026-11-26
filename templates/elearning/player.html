@@ -1,0 +1,134 @@
+{% extends 'elearning/base.html' %}
+
+{% block title %}Page {{ slide_num }} - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="player-screen-wrapper">
+    <!-- SLIM TOP CONTROLS BAR: No vertical waste -->
+    <div class="player-top-strip">
+        <div class="strip-left">
+            <a href="{{ url_for('elearning.course_detail', slug=course.slug) }}" class="strip-back-link" title="Return to Course Overview">
+                ← Exit
+            </a>
+            <span class="strip-course-title">{{ course.title }}</span>
+            <span class="strip-track-badge">
+                {% if enrolment.certificate_option == 'paid' %}
+                    🎓 Course with certificate
+                {% else %}
+                    📖 Course without certificate
+                {% endif %}
+            </span>
+        </div>
+
+        <div class="strip-center">
+            <div class="strip-page-indicator">Page {{ slide_num }}</div>
+            <div class="strip-progress-bar" title="Presentation progress">
+                {% set progress_pct = (slide_num / total_slides) * 100 %}
+                <div class="strip-progress-fill" style="width: {{ progress_pct }}%;"></div>
+            </div>
+        </div>
+
+        <div class="strip-right" style="display: flex; align-items: center; gap: 10px;">
+            {% if can_terminate_to_certificate %}
+                <a href="{{ url_for('tests.test_result_summary', slug=course.slug) }}"
+                   class="btn-terminate-to-cert"
+                   style="background: #16a34a; color: #fff; text-decoration: none; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(22,163,74,0.25); white-space: nowrap;"
+                   title="Exit slide revision and go back to your Certificate Claim and Verification status">
+                    Terminate & Go to Certificate Claim 🎓 ➔
+                </a>
+            {% elif can_terminate_to_test %}
+                <a href="{{ url_for('tests.take_test', slug=course.slug) }}"
+                   class="btn-terminate-to-test"
+                   style="background: #dc2626; color: #fff; text-decoration: none; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(220,38,38,0.25); white-space: nowrap;"
+                   title="Skip remaining slides and proceed directly to your next test attempt">
+                    Terminate & Go to Test (Attempt {{ next_attempt_seq }} of 3) ➔
+                </a>
+            {% endif %}
+            {% if is_revision %}
+                <span id="slideTimerDisplay" class="timer-badge completed" style="background:#e0f2fe;color:#0369a1;border-color:#bae6fd;">
+                    📖 Revision Mode (Free Navigation)
+                </span>
+            {% elif not has_practice %}
+                <span id="slideTimerDisplay" class="timer-badge">
+                    ⏱ Checking time...
+                </span>
+                {% if not is_completed_previously %}
+                    <button id="btnPauseResume" type="button" class="btn-pause-inline" title="Pause or resume dwell timer">
+                        Pause ⏸
+                    </button>
+                {% endif %}
+            {% else %}
+                <span id="slideTimerDisplay" class="timer-badge assessment-badge">
+                    {% if practice_answered %}✓ Answer Submitted{% else %}📝 Submit Response to Proceed{% endif %}
+                </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- MAIN ERGONOMIC PRESENTATION STAGE -->
+    <!-- Left Button Flank | Centered Slide Canvas | Right Button Flank -->
+    <div class="player-flank-layout">
+        <!-- LEFT FLANK: PREVIOUS PAGE -->
+        <div class="player-side-nav-col flank-left-col">
+            {% if slide_num > 1 %}
+                <a href="{{ url_for('elearning.slide_player', slug=course.slug, slide_num=slide_num-1) }}"
+                   id="btnPrevSlide"
+                   class="player-side-nav-btn prev-btn"
+                   title="Previous Page (Page {{ slide_num - 1 }})">
+                    <span class="nav-arrow">❮</span>
+                    <span class="nav-text">Previous<br>Page</span>
+                </a>
+            {% else %}
+                <button id="btnPrevSlide" class="player-side-nav-btn prev-btn disabled" disabled title="First Page">
+                    <span class="nav-arrow">❮</span>
+                    <span class="nav-text">Previous<br>Page</span>
+                </button>
+            {% endif %}
+        </div>
+
+        <!-- CENTER: SLIDE STAGE (Fitted to viewport height, no vertical scrolling) -->
+        <div class="player-slide-canvas-col">
+            <div class="slide-canvas">
+                {{ slide.content_html|safe }}
+            </div>
+        </div>
+
+        <!-- RIGHT FLANK: NEXT PAGE -->
+        <div class="player-side-nav-col flank-right-col">
+            <button id="btnNextSlide"
+                    type="button"
+                    class="player-side-nav-btn next-btn"
+                    data-slug="{{ course.slug }}"
+                    data-slide-num="{{ slide_num }}"
+                    data-completed="{{ 'true' if (is_completed_previously or is_revision) else 'false' }}"
+                    data-has-practice="{{ 'true' if has_practice else 'false' }}"
+                    data-practice-answered="{{ 'true' if practice_answered else 'false' }}"
+                    data-revision="{{ 'true' if is_revision else 'false' }}"
+                    data-dwell="{{ 0 if (has_practice or is_completed_previously or is_revision) else (slide.minimum_dwell_seconds or 3) }}"
+                    title="{% if slide_num == total_slides %}{% if enrolment.has_passed_test %}View Course Results & Certificate Status{% else %}Complete Presentation & Go to Final Test{% endif %}{% else %}Next Page (Page {{ slide_num + 1 }}){% endif %}"
+                    disabled>
+                <span class="nav-arrow">❯</span>
+                <span class="nav-text">
+                    {% if slide_num == total_slides %}
+                        {% if enrolment.has_passed_test %}
+                            Results<br>Summary ➔
+                        {% else %}
+                            Final<br>Test ➔
+                        {% endif %}
+                    {% else %}
+                        Next<br>Page
+                    {% endif %}
+                </span>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    window.PREVIOUS_MCQ_RESPONSES = {{ previous_mcq_responses|tojson }};
+    window.IS_REVISION_MODE = {{ 'true' if is_revision else 'false' }};
+</script>
+<script src="{{ url_for('static', filename='elearning/player.js') }}"></script>
+{% endblock %}

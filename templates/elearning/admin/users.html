@@ -1,0 +1,62 @@
+{% extends 'elearning/admin/base_admin.html' %}
+
+{% block admin_content %}
+<div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <div>
+            <h1 style="color: var(--dark-navy); font-size: 1.8rem;">User & Role Access Management</h1>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Configure role-based access control (RBAC) and permissions.</p>
+        </div>
+    </div>
+
+    <div style="background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow-x: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Learner Name</th>
+                    <th>Email Address</th>
+                    <th>Age / Gender</th>
+                    <th>Verified</th>
+                    <th>Role</th>
+                    <th>Registered</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                    <tr>
+                        <td><strong>{{ u.full_name }}</strong></td>
+                        <td>{{ u.email }}</td>
+                        <td>{{ u.age or 'N/A' }} / {{ u.gender or 'N/A' }}</td>
+                        <td>
+                            <span style="color: {{ '#166534' if u.is_verified else '#92400e' }}; font-weight: bold; font-size: 0.85rem;">
+                                {{ '✓ Verified' if u.is_verified else 'Pending' }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge-role">{{ u.role.replace('_', ' ') }}</span>
+                        </td>
+                        <td>{{ u.created_at.strftime('%d-%b-%Y') if u.created_at else '' }}</td>
+                        <td>
+                            <form action="{{ url_for('admin.update_user_role', user_id=u.id) }}" method="POST" style="display: flex; gap: 6px; align-items: center;">
+                                <select name="role" class="form-control" style="padding: 2px 6px; font-size: 0.8rem; width: 140px;">
+                                    <option value="learner" {% if u.role == 'learner' %}selected{% endif %}>Learner</option>
+                                    <option value="finance_admin" {% if u.role == 'finance_admin' %}selected{% endif %}>Finance Admin</option>
+                                    <option value="course_admin" {% if u.role == 'course_admin' %}selected{% endif %}>Course Admin</option>
+                                    <option value="content_editor" {% if u.role == 'content_editor' %}selected{% endif %}>Content Editor</option>
+                                    <option value="certificate_admin" {% if u.role == 'certificate_admin' %}selected{% endif %}>Certificate Admin</option>
+                                    <option value="support_agent" {% if u.role == 'support_agent' %}selected{% endif %}>Support Agent</option>
+                                    <option value="super_admin" {% if u.role == 'super_admin' %}selected{% endif %}>Super Admin</option>
+                                </select>
+                                <button type="submit" class="btn-primary" style="padding: 3px 8px; font-size: 0.75rem;">
+                                    Update
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

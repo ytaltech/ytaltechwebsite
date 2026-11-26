@@ -1,0 +1,49 @@
+{% extends 'elearning/admin/base_admin.html' %}
+
+{% block admin_content %}
+<div style="max-width: 900px;">
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('admin.course_slides', course_id=course.id) }}" style="color:var(--primary);text-decoration:none;font-weight:600;">
+            ← Back to Slides List
+        </a>
+    </div>
+
+    <div style="background: var(--surface); padding: 35px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border-top: 5px solid var(--primary);">
+        <h2 style="color: var(--dark-navy); margin-bottom: 20px;">
+            {% if slide %}Edit Slide #{{ slide.slide_number }}: {{ slide.title }}{% else %}Add New Slide to {{ course.title }}{% endif %}
+        </h2>
+
+        <form action="{{ url_for('admin.edit_slide', slide_id=slide.id) if slide else url_for('admin.add_slide', course_id=course.id) }}" method="POST">
+            <div class="form-group">
+                <label>Slide Title *</label>
+                <input type="text" name="title" class="form-control" value="{{ slide.title if slide else '' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label>Minimum Required Dwell Time (Seconds) *</label>
+                <input type="number" name="minimum_dwell_seconds" class="form-control" value="{{ slide.minimum_dwell_seconds if slide else 60 }}" min="0" max="600" required>
+                <small style="color:var(--text-muted);font-size:0.8rem;">Standard is 60 seconds (1 minute). Learner cannot skip before this duration completes.</small>
+            </div>
+
+            <div class="form-group">
+                <label>Slide Content HTML *</label>
+                <textarea name="content_html" class="form-control" rows="12" required style="font-family: monospace; font-size: 0.95rem;">{{ slide.content_html if slide else '' }}</textarea>
+                <small style="color:var(--text-muted);font-size:0.8rem;">Supports rich HTML tags: &lt;h3&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;strong&gt;, &lt;div class="regulatory-quote"&gt;</small>
+            </div>
+
+            {% if slide %}
+                <div class="form-group" style="margin: 20px 0;">
+                    <label style="display: flex; gap: 8px; align-items: center; cursor: pointer;">
+                        <input type="checkbox" name="is_active" value="1" {% if slide.is_active %}checked{% endif %}>
+                        <span>Slide is Active</span>
+                    </label>
+                </div>
+            {% endif %}
+
+            <button type="submit" class="btn-primary" style="padding: 12px 30px;">
+                Save Slide ➔
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

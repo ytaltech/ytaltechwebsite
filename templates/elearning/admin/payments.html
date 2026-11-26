@@ -1,0 +1,121 @@
+{% extends 'elearning/admin/base_admin.html' %}
+
+{% block admin_content %}
+<div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h1 style="color: var(--dark-navy); font-size: 1.8rem;">Manual Payment Submissions</h1>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Review, verify, and approve manual UPI and bank transfers.</p>
+        </div>
+        <div>
+            <a href="{{ url_for('admin.export_payments_csv') }}" class="btn-outline">
+                Export to CSV 📥
+            </a>
+        </div>
+    </div>
+
+    <!-- FILTER / SEARCH TOOLBAR -->
+    <div style="background: var(--surface); padding: 20px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); margin-bottom: 25px;">
+        <form method="GET" action="{{ url_for('admin.payments_list') }}" style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <input type="text" name="q" class="form-control" placeholder="Search by Order Ref, UTR, Email, Name" value="{{ search_query }}" style="flex: 2; min-width: 220px;">
+            
+            <select name="status" class="form-control" style="flex: 1; min-width: 170px;">
+                <option value="">All Statuses</option>
+                <option value="under_review" {% if status_filter == 'under_review' %}selected{% endif %}>Under Review</option>
+                <option value="verified_approved" {% if status_filter == 'verified_approved' %}selected{% endif %}>Verified / Approved</option>
+                <option value="additional_info_required" {% if status_filter == 'additional_info_required' %}selected{% endif %}>Additional Info Required</option>
+                <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                <option value="pending_submission" {% if status_filter == 'pending_submission' %}selected{% endif %}>Pending Submission</option>
+                <option value="certificate_issued" {% if status_filter == 'certificate_issued' %}selected{% endif %}>Certificate Issued</option>
+            </select>
+
+            <select name="course_id" class="form-control" style="flex: 1; min-width: 170px;">
+                <option value="">All Courses</option>
+                {% for c in courses %}
+                    <option value="{{ c.id }}" {% if course_filter == c.id|string %}selected{% endif %}>{{ c.title[:30] }}...</option>
+                {% endfor %}
+            </select>
+
+            <button type="submit" class="btn-primary" style="padding: 10px 20px;">Filter 🔍</button>
+            <a href="{{ url_for('admin.payments_list') }}" class="btn-outline" style="padding: 10px 15px;">Reset</a>
+        </form>
+    </div>
+
+    <!-- PAYMENTS TABLE -->
+    <div style="background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow-x: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Order Ref</th>
+                    <th>Learner</th>
+                    <th>Course</th>
+                    <th>Region</th>
+                    <th>Base Amount</th>
+                    <th>GST (18%)</th>
+                    <th>Total Amount</th>
+                    <th>Mode</th>
+                    <th>UTR / Ref</th>
+                    <th>Status</th>
+                    <th>Submitted</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for o in orders %}
+                    <tr>
+                        <td><code>{{ o.order_reference }}</code></td>
+                        <td>
+                            <strong>{{ o.user.full_name }}</strong>
+                            <div style="font-size:0.75rem;color:var(--text-muted);">{{ o.user.email }}</div>
+                            {% if o.customer_gstin %}
+                                <div style="font-size:0.72rem;color:#0284c7;font-weight:600;">GSTIN: {{ o.customer_gstin }}</div>
+                            {% endif %}
+                        </td>
+                        <td>{{ o.course.title[:20] }}...</td>
+                        <td>
+                            <span class="meta-tag" style="background: {{ '#e0f2fe' if o.region_label == 'India' else '#fef3c7' }}; color: {{ '#0369a1' if o.region_label == 'India' else '#b45309' }}; font-weight: 700; font-size: 0.78rem;">
+                                {{ o.region_label }}
+                            </span>
+                        </td>
+                        <td>
+                            <strong>{{ '₹' if o.currency == 'INR' else '$' }}{{ "%.2f"|format(o.base_amount) }}</strong>
+                        </td>
+                        <td>
+                            {% if o.currency == 'INR' %}
+                                <span style="color: #0369a1; font-weight: 600;">₹{{ "%.2f"|format(o.gst_amount or 0.0) }}</span>
+                            {% else %}
+                                <span style="color: var(--text-muted);">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong style="color: var(--dark-navy);">{{ '₹' if o.currency == 'INR' else '$' }}{{ "%.2f"|format(o.total_amount) }}</strong>
+                            {% if o.amount_paid and (o.amount_paid != o.expected_amount) %}
+                                <div style="font-size:0.72rem;color:red;">Exp: {{ '₹' if o.currency == 'INR' else '$' }}{{ "%.2f"|format(o.expected_amount) }}</div>
+                            {% endif %}
+                        </td>
+                        <td>{{ o.payment_mode or 'N/A' }}</td>
+                        <td><code>{{ o.transaction_reference or 'None' }}</code></td>
+                        <td>
+                            <span class="status-badge status-{{ o.status }}">
+                                {{ o.status.replace('_', ' ') }}
+                            </span>
+                        </td>
+                        <td>{{ o.submitted_at.strftime('%d-%b %H:%M') if o.submitted_at else 'Draft' }}</td>
+                        <td>
+                            <a href="{{ url_for('admin.payment_detail', order_id=o.id) }}" class="btn-primary" style="padding: 4px 12px; font-size: 0.85rem;">
+                                Review ➔
+                            </a>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="12" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                            No payment records found matching your query.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

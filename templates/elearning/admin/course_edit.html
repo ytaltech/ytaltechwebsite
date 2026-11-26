@@ -1,0 +1,73 @@
+{% extends 'elearning/admin/base_admin.html' %}
+
+{% block admin_content %}
+<div style="max-width: 800px;">
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('admin.courses_cms') }}" style="color:var(--primary);text-decoration:none;font-weight:600;">
+            ← Back to Courses
+        </a>
+    </div>
+
+    <div style="background: var(--surface); padding: 35px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border-top: 5px solid var(--primary);">
+        <h2 style="color: var(--dark-navy); margin-bottom: 20px;">Edit Course: {{ course.title }}</h2>
+
+        <form action="{{ url_for('admin.edit_course', course_id=course.id) }}" method="POST">
+            <div class="form-group">
+                <label>Course Title *</label>
+                <input type="text" name="title" class="form-control" value="{{ course.title }}" required>
+            </div>
+
+            <div class="form-group">
+                <label>Short Description *</label>
+                <textarea name="short_description" class="form-control" rows="2" required>{{ course.short_description }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Detailed Curriculum Overview</label>
+                <textarea name="overview" class="form-control" rows="4">{{ course.overview }}</textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Base Fee INR *</label>
+                    <input type="number" step="0.01" name="price_inr" class="form-control" value="{{ course.price_inr }}" required>
+                </div>
+                <div class="form-group">
+                    <label>GST Rate (e.g. 0.18) *</label>
+                    <input type="number" step="0.01" name="gst_rate" class="form-control" value="{{ course.gst_rate }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Price USD *</label>
+                    <input type="number" step="0.01" name="price_usd" class="form-control" value="{{ course.price_usd }}" required>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Estimated Duration</label>
+                    <input type="text" name="estimated_duration" class="form-control" value="{{ course.estimated_duration }}">
+                </div>
+                <div class="form-group">
+                    <label>Language</label>
+                    <input type="text" name="language" class="form-control" value="{{ course.language }}">
+                </div>
+                <div class="form-group">
+                    <label>Version</label>
+                    <input type="text" name="version" class="form-control" value="{{ course.version }}">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin: 20px 0;">
+                <label style="display: flex; gap: 8px; align-items: center; cursor: pointer;">
+                    <input type="checkbox" name="is_active" value="1" {% if course.is_active %}checked{% endif %}>
+                    <span>Course is Active and visible in Catalog</span>
+                </label>
+            </div>
+
+            <button type="submit" class="btn-primary" style="padding: 12px 30px;">
+                Save Changes ➔
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

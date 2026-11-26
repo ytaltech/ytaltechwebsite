@@ -1,0 +1,158 @@
+{% extends 'elearning/base.html' %}
+
+{% block title %}{{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1000px;">
+    <!-- BREADCRUMB -->
+    <div style="margin-bottom: 20px; font-size: 0.9rem;">
+        <a href="{{ url_for('elearning.courses_list') }}" style="color:var(--primary);text-decoration:none;">← Back to Courses</a>
+    </div>
+
+    <!-- COURSE HEADER -->
+    <div style="background: var(--surface); padding: 35px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border-top: 5px solid var(--primary); margin-bottom: 30px;">
+        <span class="meta-tag" style="background:#e0f2fe;color:#0369a1;font-weight:700;">{{ course.version }}</span>
+        <h1 style="color: var(--dark-navy); margin: 12px 0; font-size: 2.2rem;">{{ course.title }}</h1>
+        <p style="color: var(--text-muted); font-size: 1.1rem; line-height: 1.6;">{{ course.short_description }}</p>
+        
+        <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+            <span>⏱ <strong>Estimated Duration:</strong> {{ course.estimated_duration }}</span>
+            <span>🌐 <strong>Language:</strong> {{ course.language }}</span>
+            <span>📝 <strong>Evaluation:</strong> 20 MCQs Final Test (80% Passing)</span>
+            <span>📜 <strong>Accreditation:</strong> Ytal Tech Solutions & Services LLP</span>
+        </div>
+    </div>
+
+    <!-- COURSE OVERVIEW -->
+    <div style="background: var(--surface); padding: 35px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 30px;">
+        <h2 style="color: var(--primary); margin-bottom: 15px;">Course Overview & Objectives</h2>
+        <p style="line-height: 1.8; color: var(--text-primary); font-size: 1.05rem;">
+            {{ course.overview }}
+        </p>
+    </div>
+
+    <!-- SELECTION FORM: PAID VS FREE CERTIFICATE OPTION -->
+    <div style="background: var(--surface); padding: 35px; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); border: 2px solid var(--primary);">
+        <h2 style="color: var(--dark-navy); margin-bottom: 8px;">Select Your Enrolment Track</h2>
+        <p style="color: var(--text-muted); margin-bottom: 25px;">
+            Choose whether you would like to receive an official, verifiable digital and physical Certificate of Completion upon passing the final examination.
+        </p>
+
+        <form action="{{ url_for('elearning.enrol_course', slug=course.slug) }}" method="POST">
+            <div class="choice-cards-container">
+                <!-- 1. PAID OPTION -->
+                <label class="choice-card selected" id="cardPaid">
+                    <span class="choice-badge">Recommended</span>
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <input type="radio" name="certificate_option" value="paid" checked style="margin-top: 5px; transform: scale(1.3);" onchange="updateTrackSelection()">
+                        <div>
+                            <h3 style="color: var(--secondary); margin-bottom: 8px;">Take Course and Final Test WITH Certificate</h3>
+                            <div style="margin: 12px 0;">
+                                <div style="font-size: 1.6rem; font-weight: 800; color: var(--dark-navy);">
+                                    ₹{{ "%.2f"|format(course.total_price_inr) }} <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-muted);">(INR Total)</span>
+                                </div>
+                                <div style="font-size: 0.85rem; color: var(--text-muted);">
+                                    ₹{{ "%.2f"|format(course.price_inr) }} + 18% GST (₹{{ "%.2f"|format(course.gst_amount_inr) }})
+                                </div>
+                                <div style="font-size: 0.95rem; font-weight: 700; color: #0284c7; margin-top: 4px;">
+                                    ${{ "%.2f"|format(course.price_usd) }} USD for International Learners
+                                </div>
+                            </div>
+
+                            <ul style="padding-left: 20px; font-size: 0.95rem; color: #334155; line-height: 1.6;">
+                                <li>Full access to all course slides and learning modules</li>
+                                <li>Interactive practice MCQs with instant answer explanations</li>
+                                <li>Final 20-question randomized test (up to 3 attempts per cycle)</li>
+                                <li><strong>Official Verifiable Certificate of Completion</strong></li>
+                                <li>Tamper-evident SHA-256 digital signature & live QR verification</li>
+                                <li>Downloadable PDF & optional physical certificate dispatch</li>
+                                <li>Official Tax Receipt download (GST compliant)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </label>
+
+                <!-- 2. FREE OPTION -->
+                <label class="choice-card" id="cardFree">
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <input type="radio" name="certificate_option" value="free" style="margin-top: 5px; transform: scale(1.3);" onchange="updateTrackSelection()">
+                        <div>
+                            <h3 style="color: var(--primary); margin-bottom: 8px;">Take Course and Final Test WITHOUT Certificate</h3>
+                            <div style="margin: 12px 0;">
+                                <div style="font-size: 1.6rem; font-weight: 800; color: var(--dark-navy);">
+                                    ₹0.00 <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-muted);">(Free Audit)</span>
+                                </div>
+                                <div style="font-size: 0.85rem; color: var(--text-muted);">Self-learning & knowledge assessment only</div>
+                            </div>
+
+                            <ul style="padding-left: 20px; font-size: 0.95rem; color: #64748b; line-height: 1.6;">
+                                <li>Full access to all course slides and learning modules</li>
+                                <li>Interactive practice MCQs with instant explanations</li>
+                                <li>Final 20-question test (up to 3 attempts per cycle)</li>
+                                <li><del>Verifiable Certificate of Completion</del></li>
+                                <li><del>Tax Receipt</del></li>
+                                <li style="color:var(--primary);"><em>You can upgrade to a paid certificate track at any time!</em></li>
+                            </ul>
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- PAYMENT & POLICY NOTICE -->
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; margin-bottom: 25px; font-size: 0.9rem; color: #475569;">
+                <h4 style="color: var(--dark-navy); margin-bottom: 8px;">Important Notice Regarding Manual Payment & Certification:</h4>
+                <ul style="padding-left: 20px; line-height: 1.6;">
+                    <li><strong>Manual Payment Mode:</strong> Payment is collected manually via direct Bank Transfer / NEFT / IMPS or UPI to company accounts.</li>
+                    <li><strong>Independent Verification:</strong> Certificate issuance requires verified payment approval by an authorized Finance Administrator following bank record matching (expected verification within 12 to 24 business hours).</li>
+                    <li><strong>Passing Standard:</strong> A minimum score of 80% (16/20 questions) is mandatory on the final examination.</li>
+                    <li><strong>Refund Policy:</strong> Requests for refunds before payment verification or test commencement can be processed via bd@ytaltech.com.</li>
+                </ul>
+            </div>
+
+            <div style="text-align: center;">
+                <button type="submit" class="btn-primary" style="padding: 14px 40px; font-size: 1.15rem; border-radius: 30px;">
+                    {% if enrolment %}
+                        Continue Where You Left Off ➔
+                    {% else %}
+                        Proceed to Course Presentation ➔
+                    {% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- BULK DISCOUNT BANNER (Requirement 6) -->
+    <div style="margin-top: 30px; background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 2px dashed #10b981; border-radius: 12px; padding: 20px 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="font-size: 2rem;">💼</div>
+            <div>
+                <h4 style="color: #065f46; font-size: 1.05rem; margin-bottom: 3px; font-weight: 700;">Enrolling as an Institutional Team or Ethics Committee?</h4>
+                <p style="color: #047857; font-size: 0.92rem; margin: 0;">
+                    Please get in touch with us on <a href="mailto:bd@ytaltech.com?subject=Bulk%20Discount%20Inquiry%20-%20{{ course.title }}" style="color: #065f46; text-decoration: underline; font-weight: 800;">bd@ytaltech.com</a> for bulk discount.
+                </p>
+            </div>
+        </div>
+        <div>
+            <a href="mailto:bd@ytaltech.com?subject=Bulk%20Discount%20Inquiry%20-%20{{ course.title }}" class="btn-primary" style="background: #059669; border-color: #059669; white-space: nowrap; font-size: 0.9rem; padding: 8px 18px;">
+                Email for Bulk Pricing ✉
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateTrackSelection() {
+    const paidCard = document.getElementById('cardPaid');
+    const freeCard = document.getElementById('cardFree');
+    const isPaid = document.querySelector('input[name="certificate_option"]:checked').value === 'paid';
+    
+    if (isPaid) {
+        paidCard.classList.add('selected');
+        freeCard.classList.remove('selected');
+    } else {
+        freeCard.classList.add('selected');
+        paidCard.classList.remove('selected');
+    }
+}
+</script>
+{% endblock %}

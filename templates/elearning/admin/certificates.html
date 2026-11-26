@@ -1,0 +1,147 @@
+{% extends 'elearning/admin/base_admin.html' %}
+
+{% block admin_content %}
+<div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <div>
+            <h1 style="color: var(--dark-navy); font-size: 1.8rem;">Certificates & Fulfillment</h1>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Manage issued certificates, track physical courier dispatch, and handle revocations.</p>
+        </div>
+    </div>
+
+    <div style="background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow-x: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Certificate ID</th>
+                    <th>Learner</th>
+                    <th>Course</th>
+                    <th>Issue Date</th>
+                    <th>Score</th>
+                    <th>Fulfillment</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cert in certificates %}
+                    <tr>
+                        <td><code>{{ cert.certificate_id }}</code></td>
+                        <td>
+                            <strong>{{ cert.user.full_name }}</strong>
+                            <div style="font-size:0.75rem;color:var(--text-muted);">{{ cert.user.email }}</div>
+                        </td>
+                        <td>{{ cert.course.title[:20] }}...</td>
+                        <td>{{ cert.issue_date.strftime('%d-%b-%Y') }}</td>
+                        <td><strong>{{ cert.score_percentage }}%</strong></td>
+                        <td>
+                            <span class="status-badge status-{{ cert.dispatch_status }}">
+                                {{ cert.dispatch_status.replace('_', ' ') }}
+                            </span>
+                            {% if cert.tracking_number %}
+                                <div style="font-size:0.75rem;color:var(--text-muted);">Trk: {{ cert.tracking_number }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span style="color: {{ '#166534' if cert.status == 'valid' else '#991b1b' }}; font-weight: bold; font-size: 0.85rem;">
+                                {{ cert.status.upper() }}
+                            </span>
+                        </td>
+                        <td>
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <a href="{{ url_for('certificates.view_certificate', cert_id=cert.certificate_id) }}" target="_blank" class="btn-primary" style="padding: 2px 8px; font-size: 0.75rem; justify-content: center;">
+                                    View ↗
+                                </a>
+                                
+                                <button type="button" class="btn-outline" style="padding: 2px 8px; font-size: 0.75rem;" onclick="openDispatchModal('{{ cert.id }}', '{{ cert.dispatch_status }}', '{{ cert.courier_name or '' }}', '{{ cert.tracking_number or '' }}')">
+                                    Dispatch 📦
+                                </button>
+
+                                {% if cert.status == 'valid' %}
+                                    <button type="button" class="btn-danger" style="padding: 2px 8px; font-size: 0.75rem;" onclick="openRevokeModal('{{ cert.id }}', '{{ cert.certificate_id }}')">
+                                        Revoke ⚠
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                            No certificates have been issued yet.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- DISPATCH MODAL -->
+<div id="dispatchModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: #fff; width: 90%; max-width: 450px; margin: 15px; padding: 25px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); box-sizing: border-box;">
+        <h3 style="margin-bottom: 15px; color: var(--dark-navy);">Update Physical Dispatch</h3>
+        <form id="dispatchForm" method="POST">
+            <div class="form-group">
+                <label>Fulfillment Status</label>
+                <select name="dispatch_status" id="modalDispatchStatus" class="form-control">
+                    <option value="pending_dispatch">Pending Dispatch</option>
+                    <option value="dispatched">Dispatched (In Transit)</option>
+                    <option value="delivered">Delivered</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Courier Partner</label>
+                <input type="text" name="courier_name" id="modalCourier" class="form-control" placeholder="e.g. Blue Dart / DTDC / Speed Post">
+            </div>
+            <div class="form-group">
+                <label>Tracking Number</label>
+                <input type="text" name="tracking_number" id="modalTracking" class="form-control" placeholder="e.g. BD123456789IN">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn-outline" onclick="closeDispatchModal()">Cancel</button>
+                <button type="submit" class="btn-primary">Save Tracking ➔</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- REVOKE MODAL -->
+<div id="revokeModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: #fff; width: 90%; max-width: 450px; margin: 15px; padding: 25px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); box-sizing: border-box;">
+        <h3 style="margin-bottom: 10px; color: var(--danger);">Revoke Certificate</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;" id="revokeCertIdText"></p>
+        <form id="revokeForm" method="POST">
+            <div class="form-group">
+                <label>Reason for Revocation *</label>
+                <textarea name="revocation_reason" class="form-control" rows="3" required placeholder="State regulatory or compliance justification for revoking this certificate"></textarea>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn-outline" onclick="closeRevokeModal()">Cancel</button>
+                <button type="submit" class="btn-danger">Confirm Revocation ⚠</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openDispatchModal(id, status, courier, tracking) {
+    document.getElementById('dispatchForm').action = '/elearning/admin/certificates/' + id + '/dispatch';
+    document.getElementById('modalDispatchStatus').value = status;
+    document.getElementById('modalCourier').value = courier;
+    document.getElementById('modalTracking').value = tracking;
+    document.getElementById('dispatchModal').style.display = 'flex';
+}
+function closeDispatchModal() {
+    document.getElementById('dispatchModal').style.display = 'none';
+}
+function openRevokeModal(id, certId) {
+    document.getElementById('revokeForm').action = '/elearning/admin/certificates/' + id + '/revoke';
+    document.getElementById('revokeCertIdText').textContent = 'Revoking Certificate ID: ' + certId;
+    document.getElementById('revokeModal').style.display = 'flex';
+}
+function closeRevokeModal() {
+    document.getElementById('revokeModal').style.display = 'none';
+}
+</script>
+{% endblock %}

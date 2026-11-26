@@ -1,0 +1,112 @@
+{% extends 'elearning/admin/base_admin.html' %}
+
+{% block admin_content %}
+<div style="max-width: 800px;">
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('admin.mcqs_list') }}" style="color:var(--primary);text-decoration:none;font-weight:600;">
+            ← Back to Question Bank
+        </a>
+    </div>
+
+    <div style="background: var(--surface); padding: 35px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border-top: 5px solid var(--secondary);">
+        <h2 style="color: var(--dark-navy); margin-bottom: 20px;">
+            {% if mcq %}Edit Assessment Question #{{ mcq.id }}{% else %}Add New Assessment Question{% endif %}
+        </h2>
+
+        <form action="{{ url_for('admin.edit_mcq', mcq_id=mcq.id) if mcq else url_for('admin.add_mcq') }}" method="POST">
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Course *</label>
+                    <select name="course_id" class="form-control" required>
+                        {% for c in courses %}
+                            <option value="{{ c.id }}" {% if mcq and mcq.course_id == c.id %}selected{% endif %}>{{ c.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Question Type *</label>
+                    <select name="type" class="form-control" required id="mcqTypeSelect">
+                        <option value="final_test" {% if not mcq or mcq.type == 'final_test' %}selected{% endif %}>Final Exam Question</option>
+                        <option value="practice" {% if mcq and mcq.type == 'practice' %}selected{% endif %}>Practice Knowledge Check</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Part Pool</label>
+                    <select name="part" class="form-control">
+                        <option value="A" {% if mcq and mcq.part == 'A' %}selected{% endif %}>Part A (40% Pool)</option>
+                        <option value="B" {% if not mcq or mcq.part == 'B' %}selected{% endif %}>Part B (60% Pool)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Question Text *</label>
+                <textarea name="question_text" class="form-control" rows="3" required placeholder="Enter the complete question prompt">{{ mcq.question_text if mcq else '' }}</textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Option A *</label>
+                    <input type="text" name="option_a" class="form-control" value="{{ mcq.option_a if mcq else '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Option B *</label>
+                    <input type="text" name="option_b" class="form-control" value="{{ mcq.option_b if mcq else '' }}" required>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Option C *</label>
+                    <input type="text" name="option_c" class="form-control" value="{{ mcq.option_c if mcq else '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Option D *</label>
+                    <input type="text" name="option_d" class="form-control" value="{{ mcq.option_d if mcq else '' }}" required>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Correct Option *</label>
+                    <select name="correct_option" class="form-control" required>
+                        <option value="A" {% if mcq and mcq.correct_option == 'A' %}selected{% endif %}>Option A</option>
+                        <option value="B" {% if mcq and mcq.correct_option == 'B' %}selected{% endif %}>Option B</option>
+                        <option value="C" {% if mcq and mcq.correct_option == 'C' %}selected{% endif %}>Option C</option>
+                        <option value="D" {% if mcq and mcq.correct_option == 'D' %}selected{% endif %}>Option D</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Difficulty</label>
+                    <select name="difficulty" class="form-control">
+                        <option value="easy" {% if mcq and mcq.difficulty == 'easy' %}selected{% endif %}>Easy</option>
+                        <option value="medium" {% if not mcq or mcq.difficulty == 'medium' %}selected{% endif %}>Medium</option>
+                        <option value="hard" {% if mcq and mcq.difficulty == 'hard' %}selected{% endif %}>Hard</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select name="is_active" class="form-control">
+                        <option value="1" {% if not mcq or mcq.is_active %}selected{% endif %}>Active</option>
+                        <option value="0" {% if mcq and not mcq.is_active %}selected{% endif %}>Inactive (Disabled)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Answer Rationale / Explanation *</label>
+                <textarea name="explanation" class="form-control" rows="3" required placeholder="Detailed clinical or regulatory rationale shown upon practice or review">{{ mcq.explanation if mcq else '' }}</textarea>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 25px;">
+                <button type="submit" class="btn-primary" style="padding: 12px 32px; font-size: 0.95rem;">
+                    {% if mcq %}Save Changes 💾{% else %}Save Question to Bank ➔{% endif %}
+                </button>
+                <a href="{{ url_for('admin.mcqs_list') }}" class="btn-outline" style="padding: 12px 20px;">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends 'elearning/base.html' %}
+
+{% block title %}Administration Portal{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+    <!-- ADMIN SIDEBAR -->
+    <aside class="admin-sidebar" aria-label="Admin Navigation">
+        <div style="margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
+            <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Admin Console</div>
+            <div style="font-weight: 700; color: var(--dark-navy);">{{ current_user.full_name }}</div>
+            <span class="badge-role" style="margin-left: 0; margin-top: 4px; display: inline-block;">{{ current_user.role.replace('_', ' ') }}</span>
+        </div>
+
+        <ul class="admin-nav-list">
+            <li class="admin-nav-item {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+                <a href="{{ url_for('admin.dashboard') }}">📊 Dashboard</a>
+            </li>
+
+            {% if current_user.has_role('super_admin', 'finance_admin') %}
+                <li class="admin-nav-item {% if 'payment' in request.endpoint %}active{% endif %}">
+                    <a href="{{ url_for('admin.payments_list') }}">💳 Manual Payments</a>
+                </li>
+            {% endif %}
+
+            {% if current_user.has_role('super_admin', 'course_admin', 'content_editor') %}
+                <li class="admin-nav-item {% if 'course' in request.endpoint or 'slide' in request.endpoint %}active{% endif %}">
+                    <a href="{{ url_for('admin.courses_cms') }}">📚 Courses & Slides</a>
+                </li>
+                <li class="admin-nav-item {% if 'mcq' in request.endpoint %}active{% endif %}">
+                    <a href="{{ url_for('admin.mcqs_list') }}">📝 MCQ Question Bank</a>
+                </li>
+            {% endif %}
+
+            {% if current_user.has_role('super_admin', 'certificate_admin') %}
+                <li class="admin-nav-item {% if 'certificate' in request.endpoint %}active{% endif %}">
+                    <a href="{{ url_for('admin.certificates_list') }}">📜 Certificates & Dispatch</a>
+                </li>
+            {% endif %}
+
+            {% if current_user.has_role('super_admin', 'support_agent') %}
+                <li class="admin-nav-item {% if 'complaint' in request.endpoint %}active{% endif %}">
+                    <a href="{{ url_for('admin.complaints_list') }}">🚨 Inquiries & Complaints</a>
+                </li>
+            {% endif %}
+
+            {% if current_user.has_role('super_admin') %}
+                <li class="admin-nav-item {% if 'user' in request.endpoint %}active{% endif %}">
+                    <a href="{{ url_for('admin.users_list') }}">👥 User & Role Access</a>
+                </li>
+                <li class="admin-nav-item {% if 'audit' in request.endpoint %}active{% endif %}">
+                    <a href="{{ url_for('admin.audit_logs') }}">🛡 Audit Logs</a>
+                </li>
+                <li class="admin-nav-item {% if 'setting' in request.endpoint %}active{% endif %}">
+                    <a href="{{ url_for('admin.system_settings') }}">⚙ System Settings</a>
+                </li>
+            {% endif %}
+        </ul>
+    </aside>
+
+    <!-- ADMIN CONTENT -->
+    <section class="admin-main">
+        {% block admin_content %}{% endblock %}
+    </section>
+</div>
+{% endblock %}

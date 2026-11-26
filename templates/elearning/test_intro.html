@@ -1,0 +1,74 @@
+{% extends 'elearning/base.html' %}
+
+{% block title %}Final Examination - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 850px;">
+    <div style="background: var(--surface); padding: 40px; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); border-top: 5px solid var(--secondary);">
+        <span class="meta-tag" style="background:#fdf2f8;color:var(--secondary);font-weight:700;">Final Examination</span>
+        <h1 style="color: var(--dark-navy); margin: 15px 0;">{{ course.title }}</h1>
+        <p style="color: var(--text-muted); font-size: 1.1rem; line-height: 1.6;">
+            You have successfully completed all slides and practice modules. You are now eligible to attempt the final certification examination.
+        </p>
+
+        <!-- EXAMINATION RULES -->
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 25px; margin: 25px 0;">
+            <h3 style="color: var(--dark-navy); margin-bottom: 12px;">Examination Structure & Rules:</h3>
+            <ul style="padding-left: 20px; line-height: 1.8; color: #334155;">
+                <li><strong>Total Questions:</strong> Exactly 20 Multiple Choice Questions (MCQs).</li>
+                <li><strong>Question Composition:</strong> 40% (8 questions) drawn from practice question concepts, and 60% (12 questions) from the comprehensive question bank.</li>
+                <li><strong>Passing Threshold:</strong> <strong>80%</strong> (You must answer at least <strong>16 out of 20 questions</strong> correctly).</li>
+                <li><strong>Attempt Policy:</strong> You are granted a maximum of <strong>3 attempts</strong> per presentation completion cycle.</li>
+                <li><strong>Remaining Attempts:</strong> You currently have <strong>{{ remaining_attempts }} attempt(s)</strong> available.</li>
+                <li><strong>Re-Review Rule:</strong> If you do not pass after 3 attempts, you must review the course presentation slides again to unlock 3 more attempts.</li>
+                <li><strong>Answer Review:</strong> You can review and modify any answer before clicking Final Submit.</li>
+            </ul>
+        </div>
+
+        {% if attempts %}
+            <div style="margin-bottom: 25px;">
+                <h4 style="color: var(--dark-navy); margin-bottom: 10px;">Previous Attempt History:</h4>
+                <table class="styled-table" style="font-size: 0.9rem;">
+                    <thead>
+                        <tr>
+                            <th>Attempt #</th>
+                            <th>Cycle</th>
+                            <th>Date & Time</th>
+                            <th>Score</th>
+                            <th>Result</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for att in attempts %}
+                            <tr>
+                                <td>Attempt {{ att.attempt_number }}</td>
+                                <td>Cycle {{ att.presentation_cycle }}</td>
+                                <td>{{ att.submitted_at.strftime('%d-%b-%Y %H:%M') if att.submitted_at else 'Incomplete' }}</td>
+                                <td><strong>{{ att.score }}/20 ({{ att.percentage }}%)</strong></td>
+                                <td>
+                                    {% if att.passed %}
+                                        <span style="color:#166534;font-weight:700;">PASSED</span>
+                                    {% else %}
+                                        <span style="color:#991b1b;font-weight:700;">NOT PASSED</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="{{ url_for('tests.take_test', slug=course.slug) }}" class="btn-secondary" style="padding: 14px 40px; font-size: 1.15rem; border-radius: 30px;">
+                Begin Examination (Attempt {{ 4 - remaining_attempts }} of 3) ➔
+            </a>
+            <div style="margin-top: 15px;">
+                <a href="{{ url_for('elearning.slide_player', slug=course.slug, slide_num=1) }}" style="color:var(--primary);text-decoration:none;font-size:0.9rem;">
+                    ← Revisit Course Slides Before Starting
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
