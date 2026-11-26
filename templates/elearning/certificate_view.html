@@ -98,7 +98,8 @@
         </div>
     </div>
 
-    <!-- PHYSICAL DISPATCH STATUS CARD -->
+    {% if not certificate.is_international and certificate.dispatch_status != 'not_applicable' %}
+    <!-- PHYSICAL DISPATCH STATUS CARD (DOMESTIC ONLY) -->
     <div style="background: var(--surface); padding: 25px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);">
         <h3 style="color: var(--dark-navy); margin-bottom: 12px; font-size: 1.15rem;">Physical Certificate Dispatch & Courier Tracking</h3>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; font-size: 0.95rem;">
@@ -122,5 +123,14 @@
             </div>
         </div>
     </div>
+    {% else %}
+    <!-- DIGITAL FULFILLMENT NOTICE (INTERNATIONAL) -->
+    <div style="background: var(--surface); padding: 25px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);">
+        <h3 style="color: var(--dark-navy); margin-bottom: 8px; font-size: 1.15rem;">Digital Certificate Delivery</h3>
+        <p style="color: var(--text-muted); font-size: 0.95rem; margin: 0; line-height: 1.5;">
+            Official digital certificates with cryptographic SHA-256 signatures and instant QR code registry verification are provided for international candidates. Physical courier delivery is provided for addresses within India only.
+        </p>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

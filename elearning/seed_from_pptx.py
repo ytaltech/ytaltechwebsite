@@ -19,7 +19,7 @@ COURSES_CONFIG = [
         'price_inr': 499.00,
         'gst_rate': 0.18,
         'price_usd': 9.49,
-        'version': '1.0'
+        'version': 'v1.0'
     },
     {
         'slug': 'ich-gcp',
@@ -33,7 +33,7 @@ COURSES_CONFIG = [
         'price_inr': 499.00,
         'gst_rate': 0.18,
         'price_usd': 9.49,
-        'version': '1.0'
+        'version': 'v1.0'
     },
     {
         'slug': 'new-drugs-clinical-trials-rules-2019',
@@ -47,7 +47,7 @@ COURSES_CONFIG = [
         'price_inr': 499.00,
         'gst_rate': 0.18,
         'price_usd': 9.49,
-        'version': '1.0'
+        'version': 'v1.0'
     }
 ]
 
@@ -731,8 +731,8 @@ def import_pptx_presentations():
             )
 
             # Create Slide entity preserving EXACT sequence index
-            # Rule: 3 seconds for standard lecture slides (for testing); 0 seconds (no timer) for MCQ slides
-            dwell_seconds = 0 if is_mcq_slide else 3
+            # Rule: 15 seconds for standard lecture slides (production); 0 seconds (no timer) for MCQ slides
+            dwell_seconds = 0 if is_mcq_slide else 15
 
             db_slide = Slide(
                 course_id=course.id,

@@ -14,8 +14,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const isRevision = nextBtn.dataset.revision === 'true' || window.IS_REVISION_MODE === true;
     const hasPractice = nextBtn.dataset.hasPractice === 'true';
     let practiceAnswered = nextBtn.dataset.practiceAnswered === 'true';
-    // 3 seconds for lecture slides (for testing); 0 seconds (no timer) for MCQ slides or revision
-    let requiredSeconds = (hasPractice || isCompletedPreviously || isRevision) ? 0 : parseInt(nextBtn.dataset.dwell || '3', 10);
+    // 15 seconds for lecture slides (production); 0 seconds (no timer) for MCQ slides or revision
+    let requiredSeconds = (hasPractice || isCompletedPreviously || isRevision) ? 0 : parseInt(nextBtn.dataset.dwell || '15', 10);
     
     let secondsLeft = (isCompletedPreviously || isRevision || hasPractice) ? 0 : requiredSeconds;
     let isPaused = false;

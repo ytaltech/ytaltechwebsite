@@ -51,6 +51,10 @@ def issue_certificate_if_eligible(enrolment):
         today.isoformat()
     )
     
+    # International vs Domestic dispatch: No physical certificate for international candidates
+    is_intl = bool(enrolment.user.is_international or (order and order.currency != 'INR'))
+    initial_dispatch = 'not_applicable' if is_intl else 'pending_dispatch'
+
     cert = Certificate(
         certificate_id=cert_id,
         enrolment_id=enrolment.id,
@@ -62,7 +66,7 @@ def issue_certificate_if_eligible(enrolment):
         course_version=enrolment.course.version,
         status='valid',
         digital_signature_hash=sig_hash,
-        dispatch_status='pending_dispatch'
+        dispatch_status=initial_dispatch
     )
     db.session.add(cert)
     

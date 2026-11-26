@@ -80,6 +80,12 @@ class User(db.Model):
     def has_delivery_address(self):
         return bool(self.house_no and self.street and self.city and self.state and self.pincode)
 
+    @property
+    def is_international(self):
+        if not self.country:
+            return False
+        return self.country.strip().lower() not in ['india', 'in', 'bharat']
+
 
 class Course(db.Model):
     __tablename__ = 'courses'
@@ -96,7 +102,7 @@ class Course(db.Model):
     gst_rate = db.Column(db.Float, default=0.18)
     price_usd = db.Column(db.Float, default=9.49)
     
-    version = db.Column(db.String(20), default='1.0')
+    version = db.Column(db.String(20), default='v1.0')
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
@@ -123,7 +129,7 @@ class Slide(db.Model):
     title = db.Column(db.String(255), nullable=False)
     content_html = db.Column(db.Text, nullable=False)
     image_url = db.Column(db.String(500), nullable=True)
-    minimum_dwell_seconds = db.Column(db.Integer, default=3)
+    minimum_dwell_seconds = db.Column(db.Integer, default=15)
     has_practice_mcq = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=True)
     
@@ -398,7 +404,7 @@ class Certificate(db.Model):
     
     issue_date = db.Column(db.Date, nullable=False)
     score_percentage = db.Column(db.Float, default=100.0)
-    course_version = db.Column(db.String(20), default='1.0')
+    course_version = db.Column(db.String(20), default='v1.0')
     status = db.Column(db.String(20), default='valid')  # 'valid', 'revoked'
     
     digital_signature_hash = db.Column(db.String(128), nullable=False)
@@ -407,7 +413,7 @@ class Certificate(db.Model):
     verification_url = db.Column(db.String(500), nullable=True)
     
     # Physical dispatch details
-    dispatch_status = db.Column(db.String(50), default='pending_dispatch')  # 'pending_dispatch', 'dispatched', 'delivered'
+    dispatch_status = db.Column(db.String(50), default='pending_dispatch')  # 'pending_dispatch', 'dispatched', 'delivered', 'not_applicable'
     courier_name = db.Column(db.String(100), nullable=True)
     tracking_number = db.Column(db.String(100), nullable=True)
     dispatched_at = db.Column(db.DateTime, nullable=True)
@@ -417,6 +423,14 @@ class Certificate(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     payment_order = db.relationship('PaymentOrder', backref='certificate', uselist=False)
+
+    @property
+    def is_international(self):
+        if self.user and self.user.is_international:
+            return True
+        if self.payment_order and self.payment_order.currency != 'INR':
+            return True
+        return False
 
 
 class CertificateComplaint(db.Model):

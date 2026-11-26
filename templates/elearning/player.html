@@ -104,7 +104,7 @@
                     data-has-practice="{{ 'true' if has_practice else 'false' }}"
                     data-practice-answered="{{ 'true' if practice_answered else 'false' }}"
                     data-revision="{{ 'true' if is_revision else 'false' }}"
-                    data-dwell="{{ 0 if (has_practice or is_completed_previously or is_revision) else (slide.minimum_dwell_seconds or 3) }}"
+                    data-dwell="{{ 0 if (has_practice or is_completed_previously or is_revision) else (slide.minimum_dwell_seconds or 15) }}"
                     title="{% if slide_num == total_slides %}{% if enrolment.has_passed_test %}View Course Results & Certificate Status{% else %}Complete Presentation & Go to Final Test{% endif %}{% else %}Next Page (Page {{ slide_num + 1 }}){% endif %}"
                     disabled>
                 <span class="nav-arrow">❯</span>

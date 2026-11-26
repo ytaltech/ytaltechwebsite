@@ -115,7 +115,7 @@
 
                 <div class="form-group">
                     <label>Transaction Reference / UTR / Bank Ref *</label>
-                    <input type="text" name="transaction_reference" class="form-control" value="{{ order.transaction_reference or '' }}" placeholder="e.g. 412389102934 or UTR12345678" required>
+                    <input type="text" name="transaction_reference" class="form-control" value="{{ order.transaction_reference or '' }}" placeholder="Transaction Reference / UTR Number" required>
                     <small style="color: #64748b; font-size: 0.78rem;">Enter the 12-digit UPI UTR or bank reference number from your receipt.</small>
                 </div>
 
@@ -126,7 +126,7 @@
                     </div>
                     <div class="form-group">
                         <label>Payer Bank / UPI ID</label>
-                        <input type="text" name="payer_account_upi" class="form-control" value="{{ order.payer_account_upi or '' }}" placeholder="e.g. rahul@okaxis">
+                        <input type="text" name="payer_account_upi" class="form-control" value="{{ order.payer_account_upi or '' }}" placeholder="UPI ID or Bank Account Details">
                     </div>
                 </div>
 
@@ -151,17 +151,17 @@
                     
                     <div class="form-group" style="margin-bottom: 10px;">
                         <label style="font-size: 0.82rem;">Company / Organization Name (on Receipt)</label>
-                        <input type="text" name="customer_org_name" class="form-control" value="{{ order.customer_org_name or current_user.organization_name or '' }}" placeholder="e.g. BB Precision Oncocare Centre Pvt. Ltd.">
+                        <input type="text" name="customer_org_name" class="form-control" value="{{ order.customer_org_name or current_user.organization_name or '' }}" placeholder="Company or Organization Name">
                     </div>
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
                         <div class="form-group">
                             <label style="font-size: 0.82rem;">Customer GSTIN / UIN</label>
-                            <input type="text" name="customer_gstin" class="form-control" maxlength="15" value="{{ order.customer_gstin or current_user.gstin or '' }}" placeholder="e.g. 27AADFY4241Q1ZL" style="text-transform: uppercase;">
+                            <input type="text" name="customer_gstin" class="form-control" maxlength="15" value="{{ order.customer_gstin or current_user.gstin or '' }}" placeholder="15-character GSTIN" style="text-transform: uppercase;">
                         </div>
                         <div class="form-group">
                             <label style="font-size: 0.82rem;">State & State Code</label>
-                            <input type="text" name="customer_state" class="form-control" value="{{ order.customer_state or current_user.state or 'Maharashtra (State Code: 27)' }}" placeholder="e.g. Maharashtra (27)">
+                            <input type="text" name="customer_state" class="form-control" value="{{ order.customer_state or current_user.state or 'Maharashtra (State Code: 27)' }}" placeholder="State and State Code">
                         </div>
                     </div>
 

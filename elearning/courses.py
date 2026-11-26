@@ -281,7 +281,7 @@ def complete_slide():
             start_time = session.get(session_key)
             now = time.time()
             
-            required_dwell = slide.minimum_dwell_seconds if slide.minimum_dwell_seconds is not None else 3
+            required_dwell = slide.minimum_dwell_seconds if slide.minimum_dwell_seconds is not None else 15
             # Allow minor clock tolerance
             tolerance = 0.5 if required_dwell <= 5 else 2.0
             if start_time and (now - start_time) < (required_dwell - tolerance):

@@ -113,28 +113,40 @@
                 <div style="text-align: left; background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 30px; margin-top: 20px;">
                     <h3 style="color: var(--dark-navy); margin-bottom: 15px;">Certificate Issuance & Verification Status</h3>
 
-                    <!-- Step 1: Delivery Address -->
-                    <div style="display: flex; gap: 15px; margin-bottom: 20px; align-items: flex-start;">
-                        <span style="background: {{ '#10b981' if current_user.has_delivery_address else '#f59e0b' }}; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: bold;">
-                            1
-                        </span>
-                        <div>
-                            <strong>Physical Certificate Delivery Address</strong>
-                            {% if current_user.has_delivery_address %}
-                                <p style="font-size: 0.9rem; color: #166534; margin-top: 4px;">
-                                    ✓ Saved: {{ current_user.house_no }}, {{ current_user.street }}, {{ current_user.city }}, {{ current_user.state }} - {{ current_user.pincode }}
-                                    (<a href="{{ url_for('payments.delivery_address', enrolment_id=enrolment.id) }}" style="color:var(--primary);">Edit</a>)
-                                </p>
-                            {% else %}
-                                <p style="font-size: 0.9rem; color: #b45309; margin-top: 4px;">
-                                    Please enter your physical shipping address so your printed certificate can be dispatched.
-                                </p>
-                                <a href="{{ url_for('payments.delivery_address', enrolment_id=enrolment.id) }}" class="btn-primary" style="margin-top: 8px; font-size: 0.85rem; padding: 6px 14px;">
-                                    Enter Delivery Address ➔
-                                </a>
-                            {% endif %}
+                    {% if current_user.is_international or (payment_order and payment_order.currency == 'USD') %}
+                        <!-- International Candidate Notice -->
+                        <div style="background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px;">
+                            <div style="font-weight: 700; color: #0369a1; font-size: 0.95rem; margin-bottom: 4px;">
+                                🌐 International Certification Notice
+                            </div>
+                            <p style="margin: 0; font-size: 0.9rem; color: #0c4a6e; line-height: 1.5;">
+                                For international learners, an official high-resolution digital certificate with cryptographic signature hash and tamper-proof QR code verification will be issued upon payment verification. Physical hard-copy courier dispatch is provided within India only.
+                            </p>
                         </div>
-                    </div>
+                    {% else %}
+                        <!-- Step 1: Delivery Address (Domestic Only) -->
+                        <div style="display: flex; gap: 15px; margin-bottom: 20px; align-items: flex-start;">
+                            <span style="background: {{ '#10b981' if current_user.has_delivery_address else '#f59e0b' }}; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: bold;">
+                                1
+                            </span>
+                            <div>
+                                <strong>Physical Certificate Delivery Address</strong>
+                                {% if current_user.has_delivery_address %}
+                                    <p style="font-size: 0.9rem; color: #166534; margin-top: 4px;">
+                                        ✓ Saved: {{ current_user.house_no }}, {{ current_user.street }}, {{ current_user.city }}, {{ current_user.state }} - {{ current_user.pincode }}
+                                        (<a href="{{ url_for('payments.delivery_address', enrolment_id=enrolment.id) }}" style="color:var(--primary);">Edit</a>)
+                                    </p>
+                                {% else %}
+                                    <p style="font-size: 0.9rem; color: #b45309; margin-top: 4px;">
+                                        Please enter your physical shipping address so your printed certificate can be dispatched.
+                                    </p>
+                                    <a href="{{ url_for('payments.delivery_address', enrolment_id=enrolment.id) }}" class="btn-primary" style="margin-top: 8px; font-size: 0.85rem; padding: 6px 14px;">
+                                        Enter Delivery Address ➔
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
 
                     <!-- Step 2: Payment Verification -->
                     <div style="display: flex; gap: 15px; margin-bottom: 20px; align-items: flex-start;">
@@ -224,7 +236,7 @@
                             </div>
                             <div style="font-size: 0.9rem; color: #15803d; line-height: 1.5;">
                                 You successfully completed the test on <strong>{{ (attempt.submitted_at or attempt.started_at).strftime('%d %B %Y') }}</strong>. 
-                                You have 1 month (until <strong>{{ enrolment.free_upgrade_deadline.strftime('%d %B %Y') }}</strong>, <strong>{{ enrolment.free_upgrade_days_remaining }} days remaining</strong>) to pay and download your official accredited certificate.
+                                You have 1 month (until <strong>{{ enrolment.free_upgrade_deadline.strftime('%d %B %Y') }}</strong>, <strong>{{ enrolment.free_upgrade_days_remaining }} days remaining</strong>) to pay and download your official certificate.
                             </div>
                         </div>
                         <form action="{{ url_for('elearning.enrol_course', slug=course.slug) }}" method="POST" style="margin-top: 15px;">

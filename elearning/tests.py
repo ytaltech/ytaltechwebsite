@@ -216,7 +216,7 @@ def take_test(slug):
             flash("Invalid examination submission. Exactly 20 questions are required.", "danger")
             return redirect(url_for('tests.take_test', slug=course.slug))
 
-        # Security Validation 2: Ensure all questions belong to this course and are accredited final_test questions
+        # Security Validation 2: Ensure all questions belong to this course and are valid final_test questions
         mcq_objs = MCQ.query.filter(MCQ.id.in_(q_ids), MCQ.course_id == course.id, MCQ.type == 'final_test').all()
         if len(mcq_objs) != expected_total:
             flash("Invalid examination questions submitted. Submission rejected.", "danger")
