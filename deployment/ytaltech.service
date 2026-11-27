@@ -1,0 +1,54 @@
+# ==============================================================================
+# Ytal Tech Solutions & Services LLP - Systemd Production Service Unit
+# ==============================================================================
+# Path:    /etc/systemd/system/ytaltech.service
+# Command: systemctl daemon-reload
+# Enable:  systemctl enable ytaltech
+# Start:   systemctl start ytaltech
+# Status:  systemctl status ytaltech
+# ==============================================================================
+
+[Unit]
+Description=Ytal Tech E-Learning Gunicorn WSGI Application
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/ytaltechwebsite
+
+# Environment file with production database credentials, secrets, and SMTP settings
+EnvironmentFile=/var/www/ytaltechwebsite/.env
+
+# Gunicorn execution command:
+# - Preload master process to share memory and prevent startup race conditions
+# - 4 worker processes + 2 threads per worker
+# - 60s timeout
+ExecStart=/var/www/ytaltechwebsite/venv/bin/gunicorn \
+    --workers 4 \
+    --threads 2 \
+    --worker-class gthread \
+    --preload \
+    --bind 127.0.0.1:5000 \
+    --timeout 60 \
+    --access-logfile /var/log/ytaltech/access.log \
+    --error-logfile /var/log/ytaltech/error.log \
+    --capture-output \
+    wsgi:application
+
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=30
+PrivateTmp=true
+Restart=always
+RestartSec=5s
+
+# Security sandboxing
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

@@ -33,15 +33,25 @@ def init_elearning(app):
             'price_usd': app.config.get('PRICE_USD', 9.49)
         }
         
-    # HTTP Security Headers (Defensive Hardening)
+    # HTTP Security & Caching Headers (Production Hardened)
     @app.after_request
     def set_security_headers(response):
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
+        
         # When served over HTTPS, enforce Strict-Transport-Security
         from flask import request
         if request.is_secure:
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+            
+        # Optimize browser & proxy caching for static assets, prevent stale caching for dynamic app pages
+        if request.path.startswith('/static/'):
+            response.headers['Cache-Control'] = 'public, max-age=2592000'  # 30 days
+        else:
+            if 'Cache-Control' not in response.headers:
+                response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+                response.headers['Pragma'] = 'no-cache'
+                
         return response

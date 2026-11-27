@@ -498,3 +498,17 @@ class EmailLog(db.Model):
     body_html = db.Column(db.Text, nullable=False)
     status = db.Column(db.String(20), default='sent')
     sent_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class RateLimitRecord(db.Model):
+    """
+    Tracks rate-limited endpoint hits across multi-worker WSGI processes.
+    Enables distributed sliding-window enforcement across Gunicorn/Waitress workers.
+    """
+    __tablename__ = 'rate_limit_records'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(128), nullable=False, index=True)
+    timestamp = db.Column(db.Float, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+

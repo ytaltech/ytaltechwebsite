@@ -1,0 +1,23 @@
+{% extends 'elearning/base.html' %}
+
+{% block title %}Server Error (500) - Ytal Tech{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 650px; text-align: center; padding: 60px 20px;">
+    <div style="background: var(--surface); padding: 45px 35px; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); border-top: 5px solid #ef4444;">
+        <div style="font-size: 3.5rem; margin-bottom: 10px;">⚠️</div>
+        <h1 style="color: var(--dark-navy); font-size: 2rem; margin-bottom: 12px;">Unexpected Server Error (500)</h1>
+        <p style="color: var(--text-muted); font-size: 1.05rem; line-height: 1.6; margin-bottom: 25px;">
+            The server encountered a temporary issue while processing your request. Our technical team has been notified, and your active session and test attempts remain safely preserved.
+        </p>
+        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+            <a href="{{ url_for('elearning.courses_list') }}" class="btn-primary" style="padding: 12px 28px;">
+                Return to Courses 🎓
+            </a>
+            <a href="mailto:contact@ytaltech.com" class="btn-outline" style="padding: 12px 24px;">
+                Contact Support ✉️
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

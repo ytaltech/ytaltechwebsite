@@ -24,27 +24,67 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as RL
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
+from concurrent.futures import ThreadPoolExecutor
 
-from elearning.models import db, EmailLog, AuditLog, SystemSetting
+from elearning.models import db, EmailLog, AuditLog, SystemSetting, RateLimitRecord
 
-# In-memory rate limiter
-# structure: { key: [timestamps] }
+# Global thread pool for asynchronous background email dispatch (non-blocking WSGI)
+_email_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix='ytal_email')
+
+# In-memory rate limiter fallback (structure: { key: [timestamps] })
 _rate_limits = defaultdict(list)
 
 def check_rate_limit(key, max_attempts=5, window_seconds=60):
-    """Simple sliding-window rate limiter per client key with automatic memory pruning."""
+    """
+    Sliding-window rate limiter for sensitive endpoints.
+    Uses database-backed storage (RateLimitRecord) to synchronize limits across
+    all multi-worker WSGI processes (Gunicorn, Waitress, uWSGI).
+    Gracefully falls back to an in-memory sliding window if database is unavailable.
+    """
     if current_app and current_app.config.get('TESTING'):
         return True
-    now = time.time()
     
-    # Periodic pruning if dictionary grows large (prevents memory leak over long uptime)
+    now = time.time()
+    cutoff = now - window_seconds
+    
+    # 1. Primary: Database-backed distributed rate limiting across all WSGI workers
+    try:
+        valid_count = RateLimitRecord.query.filter(
+            RateLimitRecord.key == key,
+            RateLimitRecord.timestamp >= cutoff
+        ).count()
+        
+        if valid_count >= max_attempts:
+            return False
+            
+        record = RateLimitRecord(key=key, timestamp=now)
+        db.session.add(record)
+        db.session.commit()
+        
+        # Periodic pruning of expired timestamps (5% chance on request)
+        import random
+        if random.random() < 0.05:
+            try:
+                prune_cutoff = now - 3600
+                RateLimitRecord.query.filter(RateLimitRecord.timestamp < prune_cutoff).delete(synchronize_session=False)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+                
+        return True
+    except Exception as e:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+            
+    # 2. Resilient Fallback: In-memory sliding window per process
     if len(_rate_limits) > 5000:
         keys_to_delete = [k for k, v in _rate_limits.items() if not v or (now - v[-1] > 300)]
         for k in keys_to_delete:
             _rate_limits.pop(k, None)
             
     attempts = _rate_limits[key]
-    # Prune old attempts
     valid_attempts = [t for t in attempts if now - t < window_seconds]
     _rate_limits[key] = valid_attempts
     if len(valid_attempts) >= max_attempts:
@@ -305,37 +345,89 @@ def send_transactional_email(recipient_email, subject, html_content, text_conten
                     server.login(mail_username, mail_password)
                 server.sendmail(sender_email, [recipient_email], msg.as_string())
 
-    try:
-        try:
-            _execute_smtp_send(ssl_ctx)
-        except (ssl.SSLCertVerificationError, ssl.SSLError) as ssl_err:
-            print(f"[SMTP Warning] SSL verification failed ({ssl_err}); retrying with unverified context fallback...")
-            _execute_smtp_send(ssl._create_unverified_context())
-        status = 'sent'
-    except Exception as exc:
-        print(f"[SMTP Warning] Failed to send email to {recipient_email}: {exc}")
-        status = 'failed'
-        try:
-            log_audit_event(
-                0,
-                "EMAIL_SEND_FAILED",
-                "Email",
-                0,
-                f"To: {recipient_email}, Subject: {subject}, Error: {str(exc)[:200]}"
-            )
-        except Exception:
-            pass
+    mail_async = cfg.get('MAIL_ASYNC', True)
 
-    email_log = EmailLog(
-        recipient=recipient_email,
-        subject=subject,
-        body_html=wrapped_html,
-        status=status,
-        sent_at=datetime.now(timezone.utc)
-    )
-    db.session.add(email_log)
-    db.session.commit()
-    return (status == 'sent')
+    if mail_async:
+        # Non-blocking asynchronous SMTP dispatch for high-performance WSGI
+        email_log = EmailLog(
+            recipient=recipient_email,
+            subject=subject,
+            body_html=wrapped_html,
+            status='pending',
+            sent_at=datetime.now(timezone.utc)
+        )
+        db.session.add(email_log)
+        db.session.commit()
+        email_log_id = email_log.id
+
+        # Capture application instance for app context inside background worker
+        app_obj = current_app._get_current_object()
+
+        def _async_worker():
+            with app_obj.app_context():
+                worker_status = 'sent'
+                try:
+                    try:
+                        _execute_smtp_send(ssl_ctx)
+                    except (ssl.SSLCertVerificationError, ssl.SSLError) as ssl_err:
+                        print(f"[SMTP Warning] SSL verification failed ({ssl_err}); retrying with unverified context fallback...")
+                        _execute_smtp_send(ssl._create_unverified_context())
+                except Exception as exc:
+                    print(f"[Async SMTP Warning] Failed to send email to {recipient_email}: {exc}")
+                    worker_status = 'failed'
+                    try:
+                        log_audit_event(
+                            0,
+                            "EMAIL_SEND_FAILED",
+                            "Email",
+                            email_log_id,
+                            f"To: {recipient_email}, Subject: {subject}, Error: {str(exc)[:200]}"
+                        )
+                    except Exception:
+                        pass
+                try:
+                    log_record = EmailLog.query.get(email_log_id)
+                    if log_record:
+                        log_record.status = worker_status
+                        db.session.commit()
+                except Exception:
+                    db.session.rollback()
+
+        _email_executor.submit(_async_worker)
+        return True
+    else:
+        # Synchronous execution (for testing or single-process debugging)
+        try:
+            try:
+                _execute_smtp_send(ssl_ctx)
+            except (ssl.SSLCertVerificationError, ssl.SSLError) as ssl_err:
+                print(f"[SMTP Warning] SSL verification failed ({ssl_err}); retrying with unverified context fallback...")
+                _execute_smtp_send(ssl._create_unverified_context())
+            status = 'sent'
+        except Exception as exc:
+            print(f"[SMTP Warning] Failed to send email to {recipient_email}: {exc}")
+            status = 'failed'
+            try:
+                log_audit_event(
+                    0,
+                    "EMAIL_SEND_FAILED",
+                    "Email",
+                    0,
+                    f"To: {recipient_email}, Subject: {subject}, Error: {str(exc)[:200]}"
+                )
+            except Exception:
+                pass
+
+        email_log = EmailLog(
+            recipient=recipient_email,
+            subject=subject,
+            body_html=wrapped_html,
+            status=status,
+            sent_at=datetime.now(timezone.utc)
+        )
+        db.session.add(email_log)
+        db.session.commit()
+        return (status == 'sent')
 
 # Numbered canvas for ReportLab PDF pagination / border drawing
 class CertificateCanvas(canvas.Canvas):

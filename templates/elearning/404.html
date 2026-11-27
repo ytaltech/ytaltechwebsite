@@ -1,0 +1,23 @@
+{% extends 'elearning/base.html' %}
+
+{% block title %}Page Not Found (404) - Ytal Tech{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 650px; text-align: center; padding: 60px 20px;">
+    <div style="background: var(--surface); padding: 45px 35px; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); border-top: 5px solid var(--secondary);">
+        <div style="font-size: 3.5rem; margin-bottom: 10px;">🔍</div>
+        <h1 style="color: var(--dark-navy); font-size: 2rem; margin-bottom: 12px;">Page Not Found (404)</h1>
+        <p style="color: var(--text-muted); font-size: 1.05rem; line-height: 1.6; margin-bottom: 30px;">
+            The page or resource you are looking for does not exist or may have been relocated.
+        </p>
+        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+            <a href="{{ url_for('elearning.courses_list') }}" class="btn-primary" style="padding: 12px 28px;">
+                Explore Courses Catalog 🎓
+            </a>
+            <a href="{{ url_for('home') }}" class="btn-outline" style="padding: 12px 24px;">
+                Return to Home ➔
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
