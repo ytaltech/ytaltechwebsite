@@ -1,3 +1,7 @@
+import os
+os.environ['TESTING'] = 'true'
+os.environ['FLASK_DEBUG'] = 'false'
+
 import unittest
 import json
 import time

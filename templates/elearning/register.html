@@ -13,7 +13,8 @@
             </p>
         </div>
 
-        <!-- GOOGLE SIGN-IN BUTTON -->
+        <!-- GOOGLE SIGN-IN BUTTON (Active when Google OAuth credentials are configured) -->
+        {% if google_oauth_enabled %}
         <a href="{{ url_for('auth.google_login', next=next) }}" class="btn-google">
             <svg width="18" height="18" viewBox="0 0 18 18">
                 <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"/>
@@ -29,6 +30,7 @@
             <span style="padding: 0 12px; font-size: 0.8rem; text-transform: uppercase;">or register with email</span>
             <div style="flex: 1; height: 1px; background: #e2e8f0;"></div>
         </div>
+        {% endif %}
 
         <form action="{{ url_for('auth.register', next=next) }}" method="POST">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">

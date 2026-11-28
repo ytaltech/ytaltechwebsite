@@ -226,3 +226,13 @@ doc/server.md
 # Windows
 Thumbs.db
 desktop.ini
+
+# App private storage and local databases
+storage/
+*.db
+ytaltech_elearning.db
+test_isolated.db
+static/certificates/
+static/invoices/
+static/uploads/
+

@@ -1,4 +1,7 @@
 import os
+os.environ['TESTING'] = 'true'
+os.environ['FLASK_DEBUG'] = 'false'
+
 import io
 import time
 import unittest
@@ -12,6 +15,39 @@ from elearning.models import (
 from elearning.seed_from_pptx import import_pptx_presentations
 
 class ElearningTestCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        with app.app_context():
+            admin = User.query.filter_by(email='admin@ytaltech.com').first()
+            if admin:
+                admin.set_password('Admin@Ytal2026!')
+            finance = User.query.filter_by(email='finance@ytaltech.com').first()
+            if finance:
+                finance.set_password('Finance@Ytal2026!')
+            courseadmin = User.query.filter_by(email='courseadmin@ytaltech.com').first()
+            if courseadmin:
+                courseadmin.set_password('CourseAdmin@Ytal2026!')
+
+            learner = User.query.filter_by(email='learner@example.com').first()
+            if not learner:
+                learner = User(
+                    email='learner@example.com',
+                    first_name='Test',
+                    last_name='Learner',
+                    role='learner',
+                    age=25,
+                    gender='Male',
+                    is_verified=True,
+                    is_active=True
+                )
+                learner.set_password('Learner@2026!')
+                db.session.add(learner)
+            else:
+                learner.set_password('Learner@2026!')
+                learner.is_verified = True
+                learner.is_active = True
+            db.session.commit()
+
     def setUp(self):
         self.app = app
         self.app.config['TESTING'] = True

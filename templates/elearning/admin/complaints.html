@@ -35,7 +35,7 @@
                         <td><div style="max-width: 250px; font-size: 0.85rem;">{{ c.issue_description }}</div></td>
                         <td>
                             {% if c.attachment_path %}
-                                <a href="{{ url_for('static', filename=c.attachment_path) }}" target="_blank" style="color:var(--primary);font-size:0.8rem;font-weight:600;">View File ↗</a>
+                                <a href="{{ url_for('admin.complaint_attachment', complaint_id=c.id) }}" target="_blank" style="color:var(--primary);font-size:0.8rem;font-weight:600;">View File ↗</a>
                             {% else %}
                                 <span style="color:#94a3b8;font-size:0.8rem;">None</span>
                             {% endif %}

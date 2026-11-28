@@ -1,5 +1,7 @@
 import os
 import uuid
+import secrets
+from urllib.parse import urlencode
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, current_app
 from elearning.models import db, User
@@ -193,60 +195,150 @@ def login():
     return render_template('elearning/login.html', next=next_url)
 
 
-@auth_bp.route('/google-login', methods=['GET', 'POST'])
+@auth_bp.route('/google-login')
 def google_login():
     """
-    Google OAuth Sign-In handler.
-    In production environments, arbitrary parameter-based login simulation is strictly disabled.
+    Initiates Google OAuth 2.0 authentication.
+    Redirects user to Google's official consent screen when client credentials exist.
     """
     next_url = get_safe_redirect_url(request.args.get('next'))
     
-    # Check if Google OAuth Client credentials are configured
-    google_client_id = os.environ.get('GOOGLE_CLIENT_ID')
-    is_dev = current_app.config.get('TESTING') or current_app.debug or os.environ.get('FLASK_ENV') == 'development'
+    client_id = current_app.config.get('GOOGLE_CLIENT_ID')
+    client_secret = current_app.config.get('GOOGLE_CLIENT_SECRET')
     
-    # In production without real Google OAuth credentials, forbid unauthenticated parameter-based simulation
-    if not is_dev and not google_client_id:
-        flash("Google Sign-In is currently disabled on this server. Please register or sign in with your email address and password.", "warning")
+    # 1. Real Google OAuth 2.0 Flow
+    if client_id and client_secret:
+        state = secrets.token_urlsafe(32)
+        session['google_oauth_state'] = state
+        session['google_oauth_next'] = next_url
+        
+        redirect_uri = current_app.config.get('GOOGLE_REDIRECT_URI') or url_for('auth.google_callback', _external=True)
+        
+        params = {
+            'client_id': client_id,
+            'redirect_uri': redirect_uri,
+            'response_type': 'code',
+            'scope': 'openid email profile',
+            'state': state,
+            'access_type': 'online',
+            'prompt': 'select_account'
+        }
+        google_auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+        return redirect(google_auth_url)
+        
+    # 2. When unconfigured: strictly disabled (no mock simulation backdoors)
+    flash("Google Sign-In is currently disabled on this server. Please register or sign in with your email address and password below.", "info")
+    return redirect(url_for('auth.login', next=next_url))
+
+
+@auth_bp.route('/google-callback')
+def google_callback():
+    """
+    Google OAuth 2.0 authorization callback.
+    Exchanges authorization code for verified user profile and establishes session.
+    """
+    client_id = current_app.config.get('GOOGLE_CLIENT_ID')
+    client_secret = current_app.config.get('GOOGLE_CLIENT_SECRET')
+    
+    saved_state = session.pop('google_oauth_state', None)
+    next_url = session.pop('google_oauth_next', None) or url_for('elearning.courses_list')
+    next_url = get_safe_redirect_url(next_url)
+    
+    # Check for cancellation or error from Google
+    error = request.args.get('error')
+    if error:
+        flash(f"Google sign-in was cancelled ({error}). Please sign in with your email and password.", "warning")
         return redirect(url_for('auth.login', next=next_url))
         
-    # In local testing / development mode ONLY:
-    mock_email = request.args.get('google_email', 'google.user@example.com').strip().lower()
+    code = request.args.get('code')
+    state = request.args.get('state')
     
-    # Strict Security: Never allow simulating existing administrative accounts
-    if mock_email.endswith('@ytaltech.com'):
-        flash("Administrative accounts cannot be authenticated via Google simulation.", "danger")
+    if not code or not state or state != saved_state:
+        flash("Invalid Google authentication session. Please try signing in again.", "danger")
         return redirect(url_for('auth.login', next=next_url))
         
-    google_id = request.args.get('google_id', f"goog_{abs(hash(mock_email))}")
-    first_name = request.args.get('given_name', 'Google')
-    last_name = request.args.get('family_name', 'Scholar')
+    redirect_uri = current_app.config.get('GOOGLE_REDIRECT_URI') or url_for('auth.google_callback', _external=True)
     
-    user = User.query.filter((User.google_id == google_id) | (User.email == mock_email)).first()
+    token_payload = {
+        'code': code,
+        'client_id': client_id,
+        'client_secret': client_secret,
+        'redirect_uri': redirect_uri,
+        'grant_type': 'authorization_code'
+    }
+    
+    user_info = None
+    try:
+        import requests
+        token_res = requests.post('https://oauth2.googleapis.com/token', data=token_payload, timeout=12)
+        if token_res.status_code == 200:
+            tokens = token_res.json()
+            access_token = tokens.get('access_token')
+            if access_token:
+                profile_res = requests.get(
+                    'https://www.googleapis.com/oauth2/v3/userinfo',
+                    headers={'Authorization': f'Bearer {access_token}'},
+                    timeout=12
+                )
+                if profile_res.status_code == 200:
+                    user_info = profile_res.json()
+        else:
+            current_app.logger.warning(f"Google token exchange failed ({token_res.status_code}): {token_res.text}")
+    except Exception as exc:
+        current_app.logger.warning(f"Google OAuth requests exception: {exc}")
+        
+    # Standard library urllib fallback
+    if not user_info:
+        try:
+            import urllib.request
+            import json
+            req = urllib.request.Request(
+                'https://oauth2.googleapis.com/token',
+                data=urlencode(token_payload).encode('utf-8'),
+                headers={'Content-Type': 'application/x-www-form-urlencoded'}
+            )
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                tokens = json.loads(resp.read().decode('utf-8'))
+                access_token = tokens.get('access_token')
+                if access_token:
+                    p_req = urllib.request.Request(
+                        'https://www.googleapis.com/oauth2/v3/userinfo',
+                        headers={'Authorization': f'Bearer {access_token}'}
+                    )
+                    with urllib.request.urlopen(p_req, timeout=12) as p_resp:
+                        user_info = json.loads(p_resp.read().decode('utf-8'))
+        except Exception as urllib_exc:
+            current_app.logger.error(f"Google OAuth urllib fallback exception: {urllib_exc}")
+            
+    if not user_info or not user_info.get('email'):
+        flash("Could not retrieve verified profile from Google. Please sign in with your email and password.", "danger")
+        return redirect(url_for('auth.login', next=next_url))
+        
+    email = user_info.get('email').strip().lower()
+    google_id = str(user_info.get('sub', ''))
+    given_name = user_info.get('given_name') or user_info.get('name') or 'Learner'
+    family_name = user_info.get('family_name') or ''
+    
+    user = User.query.filter((User.google_id == google_id) | (User.email == email)).first()
     if not user:
-        # Create user from Google OAuth profile
         user = User(
-            email=mock_email,
-            first_name=first_name,
-            last_name=last_name,
+            email=email,
+            first_name=given_name[:100],
+            last_name=family_name[:100] if family_name else '.',
             google_id=google_id,
             role='learner',
-            is_verified=True,  # Google verified email
+            is_verified=True,
             is_active=True
         )
         db.session.add(user)
         db.session.commit()
-        log_audit_event(user.id, "GOOGLE_SIGNUP", "User", user.id, f"Google account registered: {mock_email}")
+        log_audit_event(user.id, "GOOGLE_SIGNUP", "User", user.id, f"Google account registered: {email}")
     else:
-        # Prevent privilege escalation: if user exists, ensure they are only a learner to use mock oauth
-        if user.role != 'learner':
-            flash("Privileged administrative accounts must log in with email and password.", "danger")
-            return redirect(url_for('auth.login', next=next_url))
         if not user.google_id:
             user.google_id = google_id
-            user.is_verified = True
-            db.session.commit()
-        log_audit_event(user.id, "GOOGLE_LOGIN", "User", user.id, f"Google account logged in: {mock_email}")
+        user.is_verified = True
+        db.session.commit()
+        log_audit_event(user.id, "GOOGLE_LOGIN", "User", user.id, f"Google account logged in: {email}")
         
     session.clear()
     session['user_id'] = user.id
@@ -254,11 +346,10 @@ def google_login():
     session['user_role'] = user.role
     session.permanent = True
     
-    flash("Signed in successfully via Google.", "success")
+    flash(f"Welcome back, {user.first_name}! Signed in successfully via Google.", "success")
     
-    # If missing age or gender, prompt learner to complete mandatory profile fields
     if not user.has_complete_profile:
-        flash("Please complete your profile details to proceed with course certification.", "info")
+        flash("Please complete your profile details (age and gender) to proceed with your course certification.", "info")
         return redirect(url_for('auth.complete_profile', next=next_url))
         
     return redirect(next_url)

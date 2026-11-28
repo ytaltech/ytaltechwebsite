@@ -22,8 +22,14 @@ except ImportError:
             pass
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'ytaltech-secure-elearning-secret-key-2026-prod-grade')
-    _db_url = os.environ.get('DATABASE_URL', f"sqlite:///{os.path.join(BASE_DIR, 'ytaltech_elearning.db')}")
+    # Secret Key: Strictly read from environment (.env). Falls back to ephemeral random key if omitted.
+    SECRET_KEY = os.environ.get('SECRET_KEY') or __import__('secrets').token_hex(32)
+    # Database Configuration: Strictly isolate test runs from live production database
+    if os.environ.get('TESTING') == 'true' or os.environ.get('FLASK_ENV') == 'testing':
+        _db_url = os.environ.get('TEST_DATABASE_URL', f"sqlite:///{os.path.join(BASE_DIR, 'test_isolated.db')}")
+    else:
+        _db_url = os.environ.get('DATABASE_URL', f"sqlite:///{os.path.join(BASE_DIR, 'ytaltech_elearning.db')}")
+        
     if _db_url.startswith("postgres://"):
         _db_url = _db_url.replace("postgres://", "postgresql+psycopg2://", 1)
     elif _db_url.startswith("postgresql://") and not _db_url.startswith("postgresql+"):
@@ -44,13 +50,13 @@ class Config:
         'pool_timeout': DB_POOL_TIMEOUT
     }
     
-    # Upload & Storage directories (supports external volume mounts for cloud/containers)
-    STORAGE_ROOT = os.environ.get('STORAGE_ROOT', BASE_DIR)
-    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', os.path.join(STORAGE_ROOT, 'static', 'uploads'))
+    # Secure Storage directories (Stored OUTSIDE static/ to prevent direct unauthenticated Nginx access)
+    STORAGE_ROOT = os.environ.get('STORAGE_ROOT', os.path.join(BASE_DIR, 'storage'))
+    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', os.path.join(STORAGE_ROOT, 'uploads'))
     RECEIPTS_UPLOAD_FOLDER = os.environ.get('RECEIPTS_UPLOAD_FOLDER', os.path.join(UPLOAD_FOLDER, 'receipts'))
     SLIDES_UPLOAD_FOLDER = os.environ.get('SLIDES_UPLOAD_FOLDER', os.path.join(UPLOAD_FOLDER, 'slides'))
-    CERTIFICATES_FOLDER = os.environ.get('CERTIFICATES_FOLDER', os.path.join(STORAGE_ROOT, 'static', 'certificates'))
-    INVOICES_FOLDER = os.environ.get('INVOICES_FOLDER', os.path.join(STORAGE_ROOT, 'static', 'invoices'))
+    CERTIFICATES_FOLDER = os.environ.get('CERTIFICATES_FOLDER', os.path.join(STORAGE_ROOT, 'certificates'))
+    INVOICES_FOLDER = os.environ.get('INVOICES_FOLDER', os.path.join(STORAGE_ROOT, 'invoices'))
     
     # Max file upload size (10 MB)
     MAX_CONTENT_LENGTH = 10 * 1024 * 1024
@@ -99,7 +105,8 @@ class Config:
     MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'true').lower() in ['true', '1', 'yes']
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'false').lower() in ['true', '1', 'yes']
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME', 'contact@ytaltech.com')
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', 'Ajayganesh@2024')
+    # Outbound SMTP password: Must strictly be loaded from environment (.env)
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'Ytal Tech <contact@ytaltech.com>')
     MAIL_TIMEOUT = int(os.environ.get('MAIL_TIMEOUT', 15))
     MAIL_ASYNC = os.environ.get('MAIL_ASYNC', 'true').lower() in ['true', '1', 'yes']
@@ -111,3 +118,8 @@ class Config:
     PRACTICE_POOL_COUNT = 8
     FINAL_POOL_COUNT = 12
     MIN_SLIDE_DWELL_SECONDS = 15
+
+    # Google OAuth 2.0 Configuration
+    GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+    GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
+    GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI')

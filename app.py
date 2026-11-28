@@ -1,24 +1,4 @@
 import os
-
-# Resilient environment loader with built-in fallback parser if python-dotenv is not installed
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    _env_file = os.path.join(os.path.dirname(__file__), '.env')
-    if os.path.exists(_env_file):
-        try:
-            with open(_env_file, 'r', encoding='utf-8') as _f:
-                for _line in _f:
-                    _line = _line.strip()
-                    if _line and not _line.startswith('#') and '=' in _line:
-                        _k, _v = _line.split('=', 1)
-                        _k, _v = _k.strip(), _v.strip()
-                        if _k and _k not in os.environ:
-                            os.environ[_k] = _v.strip('"').strip("'")
-        except Exception:
-            pass
-
 from flask import Flask, render_template, send_from_directory
 from werkzeug.middleware.proxy_fix import ProxyFix
 from config import Config
@@ -35,6 +15,13 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 # Initialize E-Learning module (database, blueprints, context processors)
 init_elearning(app)
 
+# Initialize database migration engine (Flask-Migrate / Alembic) if installed
+try:
+    from flask_migrate import Migrate
+    migrate = Migrate(app, db)
+except ImportError:
+    migrate = None
+
 # Ensure storage directories exist (supports external STORAGE_ROOT volume mounts)
 for folder in [
     app.config.get('UPLOAD_FOLDER'),
@@ -46,28 +33,6 @@ for folder in [
     if folder:
         os.makedirs(folder, exist_ok=True)
 
-# Dynamic persistent file serving (supports external volume mounts such as Docker / AWS ECS / Render)
-@app.route('/static/uploads/<path:filename>')
-def serve_uploads(filename):
-    upload_dir = app.config.get('UPLOAD_FOLDER')
-    if upload_dir and os.path.exists(os.path.join(upload_dir, filename)):
-        return send_from_directory(upload_dir, filename)
-    return send_from_directory(os.path.join(app.static_folder, 'uploads'), filename)
-
-@app.route('/static/certificates/<path:filename>')
-def serve_certificates(filename):
-    cert_dir = app.config.get('CERTIFICATES_FOLDER')
-    if cert_dir and os.path.exists(os.path.join(cert_dir, filename)):
-        return send_from_directory(cert_dir, filename)
-    return send_from_directory(os.path.join(app.static_folder, 'certificates'), filename)
-
-@app.route('/static/invoices/<path:filename>')
-def serve_invoices(filename):
-    inv_dir = app.config.get('INVOICES_FOLDER')
-    if inv_dir and os.path.exists(os.path.join(inv_dir, filename)):
-        return send_from_directory(inv_dir, filename)
-    return send_from_directory(os.path.join(app.static_folder, 'invoices'), filename)
-
 # Ensure database tables are created and initial seed data is populated
 # Protected by concurrency guard to prevent race conditions during multi-worker WSGI boot
 init_db_startup = os.environ.get('INIT_DB_ON_STARTUP', 'true').lower() in ['true', '1', 'yes']
@@ -78,8 +43,6 @@ if init_db_startup:
             from elearning.models import Course, Slide
             if Course.query.count() == 0 or Slide.query.count() < 100:
                 seed_database()
-                from elearning.seed_from_pptx import import_pptx_presentations
-                import_pptx_presentations()
         except Exception as e:
             db.session.rollback()
             app.logger.warning(f"[DB Init Notice] Skipped or handled concurrent startup init: {e}")

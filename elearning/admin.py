@@ -3,7 +3,7 @@ import csv
 from datetime import datetime, timezone
 from flask import (
     Blueprint, render_template, request, redirect, url_for, session,
-    flash, jsonify, current_app, Response
+    flash, jsonify, current_app, Response, send_from_directory, abort
 )
 from elearning.models import (
     db, User, Course, Slide, MCQ, Enrolment,
@@ -673,6 +673,20 @@ def update_complaint(complaint_id):
     log_audit_event(user.id, "COMPLAINT_UPDATED", "CertificateComplaint", complaint.id, f"Status updated to {status}")
     flash("Complaint updated successfully.", "success")
     return redirect(url_for('admin.complaints_list'))
+
+
+@admin_bp.route('/complaints/<int:complaint_id>/attachment')
+@role_required('super_admin', 'certificate_admin', 'support_agent')
+def complaint_attachment(complaint_id):
+    """Secure, authenticated view of reported certificate complaint attachments."""
+    complaint = CertificateComplaint.query.get_or_404(complaint_id)
+    if not complaint.attachment_path:
+        abort(404)
+    filename = os.path.basename(complaint.attachment_path)
+    receipt_dir = current_app.config['RECEIPTS_UPLOAD_FOLDER']
+    if not os.path.exists(os.path.join(receipt_dir, filename)):
+        receipt_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'receipts')
+    return send_from_directory(receipt_dir, filename)
 
 
 # ==========================================

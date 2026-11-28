@@ -15,23 +15,23 @@ Wants=postgresql.service
 
 [Service]
 Type=notify
-User=www-data
-Group=www-data
-WorkingDirectory=/var/www/ytaltechwebsite
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/ytaltech
 
 # Environment file with production database credentials, secrets, and SMTP settings
-EnvironmentFile=/var/www/ytaltechwebsite/.env
+EnvironmentFile=/opt/ytaltech/.env
 
 # Gunicorn execution command:
-# - Preload master process to share memory and prevent startup race conditions
-# - 4 worker processes + 2 threads per worker
-# - 60s timeout
-ExecStart=/var/www/ytaltechwebsite/venv/bin/gunicorn \
+# - Run without --preload to guarantee distinct DB connection pools per worker process
+# - 4 worker processes + 2 threads per worker (gthread)
+# - Bound to port 5001 (port 5000 is reserved on this host)
+# - 60s request timeout
+ExecStart=/opt/ytaltech/venv/bin/gunicorn \
     --workers 4 \
     --threads 2 \
     --worker-class gthread \
-    --preload \
-    --bind 127.0.0.1:5000 \
+    --bind 127.0.0.1:5001 \
     --timeout 60 \
     --access-logfile /var/log/ytaltech/access.log \
     --error-logfile /var/log/ytaltech/error.log \
@@ -48,7 +48,7 @@ RestartSec=5s
 # Security sandboxing
 NoNewPrivileges=true
 ProtectSystem=full
-ProtectHome=true
+ProtectHome=false
 
 [Install]
 WantedBy=multi-user.target

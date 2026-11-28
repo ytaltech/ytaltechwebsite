@@ -91,7 +91,7 @@
                 <div>
                     <strong>Proof Uploaded:</strong>
                     {% if order.proof_file_path %}
-                        <a href="{{ url_for('static', filename=order.proof_file_path) }}" target="_blank" style="color:var(--primary);font-weight:600;">View Uploaded File ↗</a>
+                        <a href="{{ url_for('payments.view_proof_file', order_id=order.id) }}" target="_blank" style="color:var(--primary);font-weight:600;">View Uploaded File ↗</a>
                     {% else %}
                         <span style="color:#ef4444;">Not uploaded</span>
                     {% endif %}

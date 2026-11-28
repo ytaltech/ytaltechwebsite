@@ -75,7 +75,7 @@
             <!-- Middle: QR Code -->
             <div>
                 {% if certificate.qr_code_path %}
-                    <img src="{{ url_for('static', filename=certificate.qr_code_path) }}" alt="Certificate QR Code" style="width: 110px; height: 110px; border: 1px solid #cbd5e1; padding: 3px; background: #fff;">
+                    <img src="{{ url_for('certificates.certificate_qr_image', cert_id=certificate.certificate_id) }}" alt="Certificate QR Code" style="width: 110px; height: 110px; border: 1px solid #cbd5e1; padding: 3px; background: #fff;">
                     <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">Scan to verify registry</div>
                 {% endif %}
             </div>

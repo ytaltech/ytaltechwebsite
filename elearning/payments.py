@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timezone
 from flask import (
     Blueprint, render_template, request, redirect, url_for, session,
-    flash, jsonify, current_app, send_file
+    flash, jsonify, current_app, send_file, send_from_directory, abort
 )
 from elearning.models import db, Course, Enrolment, PaymentOrder, User, SystemSetting
 from elearning.auth import login_required, get_current_user
@@ -286,5 +286,31 @@ def download_invoice(order_ref):
         flash("Tax invoice is available once payment is verified and approved.", "warning")
         return redirect(url_for('payments.payment_status', order_ref=order_ref))
         
-    pdf_path = generate_pdf_invoice(order)
+    pdf_path = generate_pdf_invoice(payment_order)
     return send_file(pdf_path, as_attachment=True, download_name=f"Invoice_{order.order_reference}.pdf", mimetype='application/pdf')
+
+
+@payments_bp.route('/receipt-file/<int:order_id>')
+@login_required
+def view_proof_file(order_id):
+    """
+    Secure, authenticated payment proof access.
+    Only the order owner or super_admin / finance_admin can view the uploaded payment receipt.
+    """
+    user = get_current_user()
+    order = PaymentOrder.query.get_or_404(order_id)
+    
+    if order.user_id != user.id and not user.has_role('super_admin', 'finance_admin'):
+        flash("Unauthorized access to payment proof.", "danger")
+        return redirect(url_for('elearning.courses_list'))
+        
+    if not order.proof_file_path:
+        abort(404)
+        
+    filename = os.path.basename(order.proof_file_path)
+    # Check both storage folder and legacy static uploads
+    receipt_dir = current_app.config['RECEIPTS_UPLOAD_FOLDER']
+    if not os.path.exists(os.path.join(receipt_dir, filename)):
+        receipt_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'receipts')
+        
+    return send_from_directory(receipt_dir, filename)

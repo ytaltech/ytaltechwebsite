@@ -128,15 +128,15 @@
                     {% if order.proof_file_path %}
                         <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 15px; border-radius: var(--radius-md); text-align: center;">
                             {% if order.proof_file_path.endswith('.pdf') %}
-                                <a href="{{ url_for('static', filename=order.proof_file_path) }}" target="_blank" class="btn-primary" style="display:inline-flex;">
+                                <a href="{{ url_for('payments.view_proof_file', order_id=order.id) }}" target="_blank" class="btn-primary" style="display:inline-flex;">
                                     View PDF Receipt ↗
                                 </a>
                             {% else %}
-                                <a href="{{ url_for('static', filename=order.proof_file_path) }}" target="_blank">
-                                    <img src="{{ url_for('static', filename=order.proof_file_path) }}" alt="Payment Receipt" style="max-width: 100%; max-height: 250px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <a href="{{ url_for('payments.view_proof_file', order_id=order.id) }}" target="_blank">
+                                    <img src="{{ url_for('payments.view_proof_file', order_id=order.id) }}" alt="Payment Receipt" style="max-width: 100%; max-height: 250px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                                 </a>
                                 <div style="margin-top: 6px;">
-                                    <a href="{{ url_for('static', filename=order.proof_file_path) }}" target="_blank" style="font-size: 0.8rem; color: var(--primary);">Open Full Image ↗</a>
+                                    <a href="{{ url_for('payments.view_proof_file', order_id=order.id) }}" target="_blank" style="font-size: 0.8rem; color: var(--primary);">Open Full Image ↗</a>
                                 </div>
                             {% endif %}
                         </div>

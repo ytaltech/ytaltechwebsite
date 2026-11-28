@@ -1,3 +1,7 @@
+import os
+os.environ['TESTING'] = 'true'
+os.environ['FLASK_DEBUG'] = 'false'
+
 import unittest
 import re
 from app import app
@@ -9,9 +13,32 @@ class TestFinalChanges(unittest.TestCase):
         self.ctx.push()
         self.client = app.test_client()
         self.user = User.query.filter_by(role='learner').first()
+        if not self.user:
+            self.user = User(
+                email='test_learner_fc@example.com',
+                first_name='Rahul',
+                last_name='Sharma',
+                role='learner',
+                age=28,
+                gender='Male',
+                is_verified=True,
+                is_active=True
+            )
+            self.user.set_password('Learner@2026!')
+            db.session.add(self.user)
+            db.session.commit()
+
         self.course = Course.query.filter_by(slug='good-documentation-practices').first()
         self.enrolment = Enrolment.query.filter_by(user_id=self.user.id, course_id=self.course.id).first()
-        
+        if not self.enrolment:
+            self.enrolment = Enrolment(
+                user_id=self.user.id,
+                course_id=self.course.id,
+                certificate_option='paid'
+            )
+            db.session.add(self.enrolment)
+            db.session.commit()
+            
         # Reset attempts for test
         TestAttempt.query.filter_by(enrolment_id=self.enrolment.id).delete()
         total_slides = Slide.query.filter_by(course_id=self.course.id).count()

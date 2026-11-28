@@ -23,9 +23,12 @@ def init_elearning(app):
     @app.context_processor
     def inject_elearning_globals():
         current_user = get_current_user()
+        google_client_id = app.config.get('GOOGLE_CLIENT_ID')
+        google_client_secret = app.config.get('GOOGLE_CLIENT_SECRET')
         return {
             'current_user': current_user,
             'is_logged_in': bool(current_user is not None),
+            'google_oauth_enabled': bool(google_client_id and google_client_secret),
             'system_bank_name': SystemSetting.get('bank_name', app.config.get('BANK_NAME')),
             'system_upi_id': SystemSetting.get('upi_id', app.config.get('UPI_ID')),
             'price_inr_base': app.config.get('PRICE_INR_BASE', 499.00),

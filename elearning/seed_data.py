@@ -38,7 +38,10 @@ def seed_database():
             setting.value = val
             setting.description = desc
     
-    # 2. Seed Users
+    # 2. Seed Administrative Users (Credentials injected via environment or generated securely)
+    import secrets
+    import os
+    
     seed_users = [
         {
             'email': 'admin@ytaltech.com',
@@ -48,7 +51,7 @@ def seed_database():
             'role': 'super_admin',
             'age': 45,
             'gender': 'Male',
-            'password': 'Admin@Ytal2026!'
+            'env_pwd_key': 'SEED_ADMIN_PASSWORD'
         },
         {
             'email': 'finance@ytaltech.com',
@@ -58,7 +61,7 @@ def seed_database():
             'role': 'finance_admin',
             'age': 40,
             'gender': 'Female',
-            'password': 'Finance@Ytal2026!'
+            'env_pwd_key': 'SEED_FINANCE_PASSWORD'
         },
         {
             'email': 'courseadmin@ytaltech.com',
@@ -68,22 +71,18 @@ def seed_database():
             'role': 'course_admin',
             'age': 46,
             'gender': 'Male',
-            'password': 'CourseAdmin@2026!'
-        },
-        {
-            'email': 'learner@example.com',
-            'first_name': 'Rahul',
-            'middle_name': 'Kumar',
-            'last_name': 'Sharma',
-            'role': 'learner',
-            'age': 28,
-            'gender': 'Male',
-            'password': 'Learner@2026!'
+            'env_pwd_key': 'SEED_COURSEADMIN_PASSWORD'
         }
     ]
     
     for u_info in seed_users:
         if not User.query.filter_by(email=u_info['email']).first():
+            # Never hardcode passwords in source code
+            initial_pwd = os.environ.get(u_info['env_pwd_key'])
+            if not initial_pwd:
+                initial_pwd = secrets.token_urlsafe(16)
+                print(f"[SECURITY NOTICE] Initialized {u_info['email']} with generated credential: {initial_pwd}")
+                
             user = User(
                 email=u_info['email'],
                 first_name=u_info['first_name'],
@@ -95,7 +94,7 @@ def seed_database():
                 is_verified=True,
                 is_active=True
             )
-            user.set_password(u_info['password'])
+            user.set_password(initial_pwd)
             db.session.add(user)
             
     db.session.commit()

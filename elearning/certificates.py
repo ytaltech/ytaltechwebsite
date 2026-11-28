@@ -2,7 +2,7 @@ import os
 from datetime import datetime, date, timezone
 from flask import (
     Blueprint, render_template, request, redirect, url_for, session,
-    flash, jsonify, current_app, send_file
+    flash, jsonify, current_app, send_file, send_from_directory
 )
 from elearning.models import (
     db, Certificate, Course, Enrolment, PaymentOrder,
@@ -151,6 +151,20 @@ def download_certificate_pdf(cert_id):
         download_name=f"Certificate_{cert.certificate_id}.pdf",
         mimetype='application/pdf'
     )
+
+
+@cert_bp.route('/elearning/certificate-qr/<cert_id>')
+def certificate_qr_image(cert_id):
+    """
+    Public/authenticated route to serve the certificate verification QR code image.
+    Works whether storage is in /storage/ or legacy /static/.
+    """
+    cert = Certificate.query.filter_by(certificate_id=cert_id).first_or_404()
+    filename = f"qr_{cert.certificate_id}.png"
+    cert_dir = current_app.config['CERTIFICATES_FOLDER']
+    if not os.path.exists(os.path.join(cert_dir, filename)):
+        cert_dir = os.path.join(current_app.root_path, 'static', 'certificates')
+    return send_from_directory(cert_dir, filename, mimetype='image/png')
 
 
 @cert_bp.route('/verify-certificate')
